@@ -1,6 +1,6 @@
 # TextWeaver
 
-TextWeaver is a FastAPI-based web server designed for working with Language and Logic Models (LLMs) and embedding models. It simplifies the process of handling complex natural language processing tasks and offers a robust and scalable solution for both developers and researchers.
+TextWeaver is a FastAPI-based web server designed for working with Large Language Models (LLMs), particularly Embeddings models. It simplifies the process of handling complex natural language processing tasks and offers a robust and scalable solution for both developers and researchers to store and query against embeddings in PostgresSQL.
 
 ## Features
 
