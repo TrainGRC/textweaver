@@ -1,2 +1,0 @@
-[console_scripts]
-textweaver = weaver.app:start_app
