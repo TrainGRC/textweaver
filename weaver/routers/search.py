@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from ..config import cursor, connection, model, tokenizer
+from ..config import get_connection, release_connection, model, tokenizer
 
 import time
 import json
@@ -51,6 +51,8 @@ def search(request: SearchRequest):
         If an error occurs during the execution, a JSON object containing an error message is returned.
         Example: {"error": "description of the error"}
     """
+    connection = get_connection()
+    cursor = connection.cursor()
     query = request.query
     results_to_return = request.results_to_return
     query_vector = model.encode([[instruction, query]])[0].tolist()
@@ -93,5 +95,6 @@ def search(request: SearchRequest):
     except Exception as e:
         connection.rollback()
         # Handle the exception as required
-
         return {"error": str(e)}
+    finally:
+        release_connection(connection)

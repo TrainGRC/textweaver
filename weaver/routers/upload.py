@@ -2,7 +2,7 @@ from fastapi import APIRouter, File, UploadFile, Form
 from ksuid import ksuid
 import json
 from enum import Enum
-from ..config import cursor, connection, model, tokenizer, logger
+from ..config import get_connection, release_connection, model, tokenizer, logger
 from nltk.tokenize import sent_tokenize
 
 class FileType(str, Enum):

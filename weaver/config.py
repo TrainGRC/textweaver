@@ -1,4 +1,4 @@
-import psycopg2
+from psycopg2 import pool
 from nltk.tokenize import sent_tokenize
 from transformers import BertTokenizer
 from InstructorEmbedding import INSTRUCTOR
@@ -49,14 +49,22 @@ db_params = {
     'port': os.getenv('DB_PORT') or input('Enter your database port #: ')
 }
 
-# Create a connection and cursor
-try:
-    connection = psycopg2.connect(**db_params)
-    cursor = connection.cursor()
-except Exception as e:
-    logger.error(f'Error connecting to the database: {e}')
-    exit(1)
+
+# Connection pool parameters
+connection_pool = pool.SimpleConnectionPool(1, 20, **db_params)
+
+# Function to get a connection from the pool
+def get_connection():
+    return connection_pool.getconn()
+
+# Function to release a connection back to the pool
+def release_connection(connection):
+    connection_pool.putconn(connection)
+
+# Function to close all connections in the pool
+def close_all_connections():
+    connection_pool.closeall()
+
     
 def close_connection():
-    cursor.close()
-    connection.close()
+    close_all_connections()
