@@ -7,7 +7,7 @@ from .config import close_connection
 app = FastAPI()
 
 def start_app():
-    run(app, host="127.0.0.1", port=8000)
+    run(app, host="0.0.0.0", port=8000)
 
 app.include_router(search.router)
 app.include_router(upload.router)
