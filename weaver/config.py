@@ -68,8 +68,9 @@ def install_ffmpeg():
         # Determine the package manager (apt or yum) and install ffmpeg
         try:
             subprocess.run(["apt", "-v"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            subprocess.run(["sudo", "apt", "update"], check=True)
-            subprocess.run(["sudo", "apt", "install", "ffmpeg"], check=True)
+            subprocess.run(["apt-get", "update", "-y"], check=True)
+            subprocess.run(["apt-get", "upgrade", "-y"], check=True)
+            subprocess.run(["apt", "install", "ffmpeg", "-y"], check=True)
             logger.info("ffmpeg installed successfully using apt.")
         except FileNotFoundError:
             try:

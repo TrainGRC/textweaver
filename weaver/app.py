@@ -4,10 +4,18 @@ from .routers import search, upload
 from .config import close_connection
 
 
-app = FastAPI()
+app = FastAPI(    
+    debug=False,
+    title="Stinkbait",
+    description="API for Stinkbait",
+    version="1.0.0",
+    docs_url="/documentation",
+    redoc_url=None,
+    openapi_tags=None
+)
 
 def start_app():
-    run(app, host="0.0.0.0", port=8000)
+    run(app, host="0.0.0.0", port=80)
 
 app.include_router(search.router)
 app.include_router(upload.router)
