@@ -1,0 +1,16 @@
+README.md
+setup.py
+textweaver.egg-info/PKG-INFO
+textweaver.egg-info/SOURCES.txt
+textweaver.egg-info/dependency_links.txt
+textweaver.egg-info/entry_points.txt
+textweaver.egg-info/requires.txt
+textweaver.egg-info/top_level.txt
+weaver/__init__.py
+weaver/app.py
+weaver/config.py
+weaver/models/__init__.py
+weaver/routers/__init__.py
+weaver/routers/search.py
+weaver/routers/upload.py
+weaver/utils/__init__.py
