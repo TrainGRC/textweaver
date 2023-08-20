@@ -1,8 +1,11 @@
-from fastapi import APIRouter, File, UploadFile, Form
+from fastapi import APIRouter, File, UploadFile, Form, HTTPException
+from moviepy.editor import VideoFileClip
 from ksuid import ksuid
+import tempfile
 import json
+import os
 from enum import Enum
-from ..config import get_connection, release_connection, model, tokenizer, logger
+from ..config import get_connection, release_connection, model, tokenizer, logger, whisper_model
 from nltk.tokenize import sent_tokenize
 
 class FileType(str, Enum):
@@ -48,24 +51,80 @@ async def upload(file: UploadFile = File(...), file_type: FileType = Form(...)):
         - Specific error responses should be handled based on the requirements of the application.
     """
     if file_type == FileType.audio:
-        process_audio(file)
+        result = await process_audio(file)
+        return result
     elif file_type == FileType.video:
-        process_video(file)
+        result = await process_video(file)
+        return result
     elif file_type == FileType.image:
-        process_image(file)
+        result = await process_image(file)
+        return result
     elif file_type == FileType.text:
         result = await process_text(file)
         return result
 
     return {"success": "File processed successfully"}
 
-def process_audio(file: UploadFile):
-    pass
+async def process_audio(file: UploadFile):
+    # Create a temporary file to store the uploaded audio
+    temp_file = tempfile.NamedTemporaryFile(delete=False)
+    try:
+        # Write the uploaded file to the temporary file
+        content = file.file.read()
+        temp_file.write(content)
+        temp_file.close()
 
-def process_video(file: UploadFile):
-    pass
+        # Transcribe the audio using the Whisper model
+        result = whisper_model.transcribe(temp_file.name)
+        transcription_text = result['text']
+        logger.info(f"Transcription result: {transcription_text}")
+        # Process the transcription result using the process_file function
+        process_file({'Body': transcription_text}, file.filename)
+        return {"success": "Text processed successfully"}
 
-def process_image(file: UploadFile):
+    except Exception as e:
+        logger.error(f"Error processing audio file: {file.filename} Error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error processing audio file")
+
+    finally:
+        # Remove the temporary file
+        os.unlink(temp_file.name)
+
+async def process_video(file: UploadFile):
+    # Create a temporary file to store the uploaded video
+    temp_video_file = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
+    try:
+        # Write the uploaded file to the temporary video file
+        content = file.file.read()
+        temp_video_file.write(content)
+        temp_video_file.close()
+
+        # Load the video using moviepy and extract the audio
+        video_clip = VideoFileClip(temp_video_file.name)
+        audio_clip = video_clip.audio
+
+        # Create a temporary file to store the extracted audio
+        temp_audio_file = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+        audio_clip.write_audiofile(temp_audio_file.name)
+        temp_audio_file.close()
+
+        # Create a temporary UploadFile object for the extracted audio
+        temp_audio_upload_file = UploadFile(filename=file.filename, file=open(temp_audio_file.name, 'rb'))
+
+        # Process the audio using the existing process_audio function
+        result = await process_audio(temp_audio_upload_file)
+        return {"success": "Text processed successfully"}
+
+    except Exception as e:
+        logger.error(f"Error processing video file: {file.filename} Error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error processing video file")
+
+    finally:
+        # Remove the temporary files
+        os.unlink(temp_video_file.name)
+        os.unlink(temp_audio_file.name)
+
+async def process_image(file: UploadFile):
     pass
 
 async def process_text(file: UploadFile):
@@ -86,7 +145,7 @@ def process_file(file_obj, file_key):
     try:
         body_content = file_obj['Body']
     except UnicodeDecodeError:
-        logging.error(f"UnicodeDecodeError: {file_key}")
+        logger.error(f"UnicodeDecodeError: {file_key}")
         return local_corpus, local_corpus_embeddings
     max_chunk_size = 256  # Adjust as needed
     sentences = sent_tokenize(body_content)

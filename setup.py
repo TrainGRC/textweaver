@@ -6,7 +6,7 @@ with open('README.md', encoding='utf-8') as f:
 
 setup(
     name='textweaver',
-    version='0.1.2',
+    version='0.1.5',
     author='Wes Ladd',
     author_email='wesladd@traingrc.com',
     description='A FastAPI-based web server for working with LLMs, embedding models, and PostgresSQL.',
@@ -28,6 +28,8 @@ setup(
         'InstructorEmbedding',
         'sentence-transformers',
         'python-multipart',
+        'whisper-ai',
+        'moviepy',
     ],
     entry_points={
         'console_scripts': [

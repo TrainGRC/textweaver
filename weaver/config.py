@@ -1,11 +1,19 @@
 from psycopg2 import pool
+import os
+import getpass
+import subprocess
+import sys
+import logging
+import whisper
 from nltk.tokenize import sent_tokenize
 from transformers import BertTokenizer
 from InstructorEmbedding import INSTRUCTOR
-import logging
 from termcolor import colored
-import os
-import getpass
+
+
+##############################################################################################
+###                                  Logging Configuration                                 ###
+##############################################################################################
 
 class ColoredConsoleHandler(logging.StreamHandler):
     COLORS = {
@@ -39,6 +47,46 @@ logger.addHandler(console_handler)
 # Model and Tokenizer
 model = INSTRUCTOR('hkunlp/instructor-xl')
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
+##############################################################################################
+###                                  Whisper AI Configuration                              ###
+##############################################################################################
+
+def install_ffmpeg():
+    """
+    Check if ffmpeg is installed on the host system.
+    If not, it attempts to install it using the appropriate package manager.
+    """
+
+    # Check if ffmpeg is installed
+    try:
+        subprocess.run(["ffmpeg", "-version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        logger.info("ffmpeg is already installed.")
+    except FileNotFoundError:
+        logger.info("ffmpeg not found. Installing now...")
+
+        # Determine the package manager (apt or yum) and install ffmpeg
+        try:
+            subprocess.run(["apt", "-v"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(["sudo", "apt", "update"], check=True)
+            subprocess.run(["sudo", "apt", "install", "ffmpeg"], check=True)
+            logger.info("ffmpeg installed successfully using apt.")
+        except FileNotFoundError:
+            try:
+                subprocess.run(["yum", "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.run(["sudo", "yum", "install", "ffmpeg"], check=True)
+                logger.info("ffmpeg installed successfully using yum.")
+            except FileNotFoundError:
+                logger.error("Could not determine package manager. Please install ffmpeg manually.")
+                sys.exit(1)
+
+# Call the function at startup to ensure ffmpeg is installed
+install_ffmpeg()
+whisper_model = whisper.load_model("base")
+
+##############################################################################################
+###                                  DB Connection Configuration                           ###                    
+##############################################################################################
 
 # Connection parameters
 db_params = {
