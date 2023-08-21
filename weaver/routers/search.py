@@ -1,7 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, validator
 import re
 from ..config import get_connection, release_connection, model, tokenizer
+from ..utils.db import check_table_exists
 
 import time
 import json
@@ -16,7 +17,7 @@ class SearchRequest(BaseModel):
     query: str
     results_to_return: int = top_k  # Optional parameter with a default value
     search_type: str = "euclidean"  # New optional parameter with default value
-    probes: int = 5  # Optional parameter for number of probes, defaults to 5
+    probes: int = 2  # Optional parameter for number of probes, defaults to 5
     workers: int = 1  # Optional parameter for number of workers, defaults to 1
     user_table: str = None  # Optional parameter to specify user table
 
@@ -75,6 +76,8 @@ def search(request: SearchRequest):
     query_vector = model.encode([[instruction, query]])[0].tolist()
     search_type = request.search_type
     table_to_search = "embeddings" if request.user_table is None else request.user_table.replace('@', '__').replace('.', '_')
+    if not check_table_exists(table_to_search):
+        raise HTTPException(status_code=404, detail=f"User DB '{table_to_search}' does not exist.")
     # Validate and get the corresponding operator
     operator_mapping = {
         "euclidean": "<->",

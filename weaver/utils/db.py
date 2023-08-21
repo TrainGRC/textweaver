@@ -2,7 +2,23 @@ from ..config import get_connection, release_connection, logger
 import numpy as np
 import json
 
-def create_table_if_not_exists(username):
+def check_table_exists(username: str) -> bool:
+    conn = get_connection()
+    cursor = conn.cursor()
+    table_name = username.replace('@', '__').replace('.', '_')
+
+    # Check if the table already exists
+    cursor.execute(f"SELECT to_regclass('{table_name}');")
+    exists = cursor.fetchone()[0]
+    if exists:
+        logger.warning(f"Table '{username}' exists.")
+    else:
+        logger.info(f"Table '{username}' does not exist.")
+    
+    release_connection(conn)
+    return bool(exists)
+
+def create_user_table(username):
     """
     Create a table in the database if it does not exist.
 
@@ -18,18 +34,14 @@ def create_table_if_not_exists(username):
     Note:
         - This function checks whether a table with the given username already exists and creates it if not.
         - It prints messages to standard output for diagnostic purposes.
-    """
+    """    
+    if check_table_exists(username):
+        return
+    
     conn = get_connection()
     cursor = conn.cursor()
     table_name = username.replace('@', '__').replace('.', '_')
-
-    # Check if the table already exists
-    cursor.execute(f"SELECT to_regclass('{table_name}');")
-    if cursor.fetchone()[0]:
-        logger.warning(f"Table '{username}' already exists.")
-        release_connection(conn)
-        return
-
+    
     create_table_query = f"""
         CREATE TABLE {table_name} (
             filename VARCHAR NOT NULL,
@@ -44,7 +56,6 @@ def create_table_if_not_exists(username):
         logger.info(f"Table '{table_name}' created successfully.")
     except Exception as e:
         logger.info(f"An error occurred while creating the '{table_name}' table: {e}")
-
     conn.commit()
     release_connection(conn)
 

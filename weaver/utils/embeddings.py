@@ -2,7 +2,7 @@ import json
 from ksuid import ksuid
 from nltk.tokenize import sent_tokenize
 from ..config import logger, model, tokenizer
-from ..utils.db import create_table_if_not_exists, insert_into_db
+from ..utils.db import insert_into_db
 
     
 def process_file(username, file_obj, file_key, file_type):

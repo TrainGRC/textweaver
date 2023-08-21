@@ -11,7 +11,7 @@ app = FastAPI(
     description="API for Text Weaver Document Search Engine",
     version="1.0.0",
     docs_url="/documentation",
-    redoc_url=None,
+    redoc_url="/redocumentation",
     openapi_tags=None
 )
 
