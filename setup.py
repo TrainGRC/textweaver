@@ -6,7 +6,7 @@ with open('README.md', encoding='utf-8') as f:
 
 setup(
     name='textweaver',
-    version='0.2.0',
+    version='0.2.1',
     author='Wes Ladd',
     author_email='wesladd@traingrc.com',
     description='A FastAPI-based web server for working with LLMs, embedding models, and PostgresSQL.',
