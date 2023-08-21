@@ -1,13 +1,14 @@
 from fastapi import FastAPI
 from uvicorn import run
+import os
 from .routers import search, upload
 from .config import close_connection
 
 
 app = FastAPI(    
     debug=False,
-    title="Stinkbait",
-    description="API for Stinkbait",
+    title="Textweaver Search API",
+    description="API for Text Weaver Document Search Engine",
     version="1.0.0",
     docs_url="/documentation",
     redoc_url=None,
@@ -15,7 +16,9 @@ app = FastAPI(
 )
 
 def start_app():
-    run(app, host="0.0.0.0", port=80)
+    host_ip = os.getenv("HOST_IP") or input("Enter host IP: ")
+    port_num = int(os.getenv("PORT") or input("Enter port number: "))
+    run(app, host=host_ip, port=port_num)
 
 app.include_router(search.router)
 app.include_router(upload.router)
