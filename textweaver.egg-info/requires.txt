@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+ksuid
+numpy
+psycopg2-binary
+nltk
+transformers
+termcolor
+pydantic
+InstructorEmbedding
+sentence-transformers
+python-multipart
+whisper-ai
+moviepy
+mutagen
+PyPDF2
