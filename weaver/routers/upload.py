@@ -1,15 +1,19 @@
-from fastapi import APIRouter, File, UploadFile, Form, HTTPException
+from fastapi import APIRouter, File, UploadFile, Form, HTTPException, BackgroundTasks
 from moviepy.editor import VideoFileClip
 from pydantic import BaseModel, validator
+import PyPDF2
+import mutagen
 import re
-import numpy as np
 from ksuid import ksuid
 import tempfile
 import json
 import os
 from enum import Enum
-from ..config import get_connection, release_connection, model, tokenizer, logger, whisper_model
 from nltk.tokenize import sent_tokenize
+from ..config import model, tokenizer, logger, whisper_model
+from ..utils.db import create_table_if_not_exists, insert_into_db
+
+router = APIRouter()
 
 class FileType(str, Enum):
     audio = "audio"
@@ -31,11 +35,40 @@ class UserName(BaseModel):
             username = username.replace('@', '__').replace('.', '_')  # Replacing both @ and . with _
         return username
 
-router = APIRouter()
-instruction = "Represent the cybersecurity content:"
+def validate_file_content(file_type: FileType, file: UploadFile) -> str:
+    try:
+        # Read the file content
+        file_content = file.file.read()
+
+        if file_type == FileType.audio:
+            # Validate MP3 file using mutagen
+            mutagen.File(file_content)
+        elif file_type == FileType.video:
+            # Validate MP4 file using moviepy
+            VideoFileClip(file_content)
+        elif file_type == FileType.text and file.filename.endswith('.pdf'):
+            # Validate PDF file using PyPDF2
+            PyPDF2.PdfFileReader(file_content)
+
+        return ""
+    except:
+        return f"Invalid content for file type {file_type.value}"
+
+def validate_file_type(file_type: FileType, file_extension: str) -> str:
+    if file_type == FileType.audio and file_extension != '.mp3':
+        return "Invalid file type for audio"
+    elif file_type == FileType.video and file_extension != '.mp4':
+        return "Invalid file type for video"
+    elif file_type == FileType.image and file_extension not in ['.jpg', '.png']:
+        return "Invalid file type for image"
+    elif file_type == FileType.text and file_extension not in ['.pdf', '.txt']:
+        return "Invalid file type for text"
+    return ""
+
+ALLOWED_EXTENSIONS = {'.pdf', '.jpg', '.png', '.txt', '.mp3', '.mp4'}
 
 @router.post("/upload/")
-async def upload(file: UploadFile = File(...), file_type: FileType = Form(...), username: str = Form(...)):
+async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...), file_type: FileType = Form(...), username: str = Form(...)):
     """
     Endpoint to upload and process different types of files: audio, video, image, and text.
 
@@ -68,26 +101,32 @@ async def upload(file: UploadFile = File(...), file_type: FileType = Form(...), 
         - The insert_into_db function (for inserting chunks into the database) needs to be implemented.
         - Specific error responses should be handled based on the requirements of the application.
     """
+
     # Validate Username is e-mail address or only alphanumeric
     username_model = UserName(username=username) # Trigger the validation
 
     # Check if the table exists, and create it if not
     create_table_if_not_exists(username)
 
-    if file_type == FileType.audio:
-        result = await process_audio(username, file, file_type)
-        return result
-    elif file_type == FileType.video:
-        result = await process_video(username, file, file_type)
-        return result
-    elif file_type == FileType.image:
-        result = await process_image(username, file, file_type)
-        return result
-    elif file_type == FileType.text:
-        result = await process_text(username, file, file_type)
-        return result
+    # Check file extension
+    file_extension = os.path.splitext(file.filename)[1]
+    if file_extension not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Unsupported file extension")
+    # validation_error_msg = validate_file_type(file_type, file_extension) or validate_file_content(file_type, file)
+    # if validation_error_msg:
+    #     raise HTTPException(status_code=400, detail=validation_error_msg)
 
-    return {"success": "File processed successfully"}
+    # Add the processing function as a background task
+    if file_type == FileType.audio:
+        background_tasks.add_task(process_audio, username, file, file_type)
+    elif file_type == FileType.video:
+        background_tasks.add_task(process_video, username, file, file_type)
+    elif file_type == FileType.image:
+        background_tasks.add_task(process_image, username, file, file_type)
+    elif file_type == FileType.text:
+        background_tasks.add_task(process_text, username, file, file_type)
+
+    return {"success": "File processing has started"}
 
 async def process_image(username, file: UploadFile, file_type: FileType):
     pass
@@ -174,6 +213,7 @@ def process_file(username, file_obj, file_key, file_type):
         - It also handles UnicodeDecodeErrors and prints error messages for corrupted files.
     """
     logger.info(f"Started Processing: {file_key}")
+    instruction = "Represent the cybersecurity content:"
     doc_id = str(ksuid())
     local_corpus = []
     local_corpus_embeddings = []
@@ -216,98 +256,3 @@ def process_file(username, file_obj, file_key, file_type):
             logger.error(f"File corrupted: {file_key} Error: {e}")
 
     return local_corpus, local_corpus_embeddings
-
-def create_table_if_not_exists(username):
-    """
-    Create a table in the database if it does not exist.
-
-    Parameters:
-        username (str): The username to be used as the table name. Must be alphanumeric.
-
-    Returns:
-        None
-
-    Raises:
-        HTTPException: If the username is not alphanumeric.
-
-    Note:
-        - This function checks whether a table with the given username already exists and creates it if not.
-        - It prints messages to standard output for diagnostic purposes.
-    """
-    conn = get_connection()
-    cursor = conn.cursor()
-    table_name = username.replace('@', '__').replace('.', '_')
-
-    # Check if the table already exists
-    cursor.execute(f"SELECT to_regclass('{table_name}');")
-    if cursor.fetchone()[0]:
-        logger.warning(f"Table '{username}' already exists.")
-        release_connection(conn)
-        return
-
-    create_table_query = f"""
-        CREATE TABLE {table_name} (
-            filename VARCHAR NOT NULL,
-            metadata JSON,
-            embeddings VECTOR(768),
-            embeddings_text VARCHAR 
-        );
-    """
-
-    try:
-        cursor.execute(create_table_query)
-        logger.info(f"Table '{table_name}' created successfully.")
-    except Exception as e:
-        logger.info(f"An error occurred while creating the '{table_name}' table: {e}")
-
-    conn.commit()
-    release_connection(conn)
-
-def insert_into_db(username, filename, metadata, embeddings, embeddings_text):
-    """
-    Insert a record into the specified user's table.
-
-    Parameters:
-        username (str): The name of the table to insert the record into. Must be alphanumeric.
-        filename (str): The name of the file associated with the record.
-        metadata (dict): The metadata associated with the record.
-        embeddings (list): The embeddings associated with the record.
-        embeddings_text (str): The embeddings text associated with the record.
-
-    Returns:
-        None
-
-    Raises:
-        HTTPException: If the username is not alphanumeric.
-
-    Note:
-        - Prints messages to standard output for diagnostic purposes.
-    """
-    table_name = username.replace('@', '__').replace('.', '_')
-
-    # Convert the embeddings to a numpy array
-    embeddings_array = np.array(embeddings)
-
-    # If the array is 2-D with a single row, flatten it to 1-D
-    if embeddings_array.ndim == 2 and embeddings_array.shape[0] == 1:
-        embeddings_array = embeddings_array.flatten()
-
-    # Convert the numpy array to a Python list
-    embeddings_list = embeddings_array.tolist()
-    insert_query = f"""
-        INSERT INTO {table_name} (filename, metadata, embeddings, embeddings_text)
-        VALUES (%s, %s, %s, %s);
-    """
-
-    connection = get_connection()
-    cursor = connection.cursor()
-
-    try:
-        cursor.execute(insert_query, (filename, json.dumps(metadata), embeddings_list, embeddings_text))
-        logger.info(f"Record inserted successfully into '{table_name}' table.")
-    except Exception as e:
-        logger.info(f"An error occurred while inserting the record into the '{table_name}' table: {e}")
-        raise
-
-    connection.commit()
-    release_connection(connection)

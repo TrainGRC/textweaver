@@ -20,6 +20,7 @@ setup(
         'fastapi',
         'uvicorn',
         'ksuid',
+        'numpy',
         'psycopg2-binary',
         'nltk',
         'transformers',
@@ -30,6 +31,8 @@ setup(
         'python-multipart',
         'whisper-ai',
         'moviepy',
+        'mutagen',
+        'PyPDF2',
     ],
     entry_points={
         'console_scripts': [
