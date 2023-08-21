@@ -3,13 +3,13 @@ from uvicorn import run
 import os
 from .routers import search, upload
 from .config import close_connection
-
+from .version import __version__
 
 app = FastAPI(    
     debug=False,
     title="Textweaver Search API",
     description="API for Text Weaver Document Search Engine",
-    version="1.0.0",
+    version=__version__,
     docs_url="/documentation",
     redoc_url="/redocumentation",
     openapi_tags=None
