@@ -4,9 +4,13 @@ from setuptools import setup, find_packages
 with open('README.md', encoding='utf-8') as f:
     long_description = f.read()
 
+with open("weaver/version.py") as file:
+    content = file.read()
+    version = content.strip().split('=')[-1].replace('"', '').strip()
+
 setup(
     name='textweaver',
-    version='0.2.2',
+    version=version,
     author='Wes Ladd',
     author_email='wesladd@traingrc.com',
     description='A FastAPI-based web server for working with LLMs, embedding models, and PostgresSQL.',
