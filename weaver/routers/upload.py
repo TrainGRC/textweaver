@@ -205,7 +205,8 @@ async def process_pdf(username, file: UploadFile, file_type: FileType):
     Returns:
         dict: A dictionary containing a success message if the PDF was processed successfully.
     """
-
+    # TODO: Add support for limiting pages of PDF to process
+    # TODO: Add support for validating PDF prior to processing
     # Create a temporary file to store the uploaded PDF
     temp_file = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
     try:
