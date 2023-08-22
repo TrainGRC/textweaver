@@ -38,6 +38,8 @@ setup(
         'mutagen',
         'PyPDF2',
         'uvloop',
+        'boto3',
+        'email-validator',
     ],
     entry_points={
         'console_scripts': [

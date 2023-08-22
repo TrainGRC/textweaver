@@ -9,6 +9,7 @@ from nltk.tokenize import sent_tokenize
 from transformers import BertTokenizer
 from InstructorEmbedding import INSTRUCTOR
 from termcolor import colored
+import boto3
 
 
 ##############################################################################################
@@ -117,3 +118,26 @@ def close_all_connections():
     
 def close_connection():
     close_all_connections()
+
+##############################################################################################
+###                                     AWS Configuration                                  ###
+##############################################################################################
+
+# Get AWS credentials from environment variables
+access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+default_region = os.getenv('AWS_DEFAULT_REGION')
+
+# Check if the required environment variables are set
+if not access_key_id or not secret_access_key or not default_region:
+    raise EnvironmentError('AWS credentials not found in environment variables.')
+
+# Create a boto3 session
+aws_session = boto3.Session(
+    aws_access_key_id=access_key_id,
+    aws_secret_access_key=secret_access_key,
+    region_name=default_region
+)
+
+# Create a boto3 Textract client using the session
+textract_client = aws_session.client('textract')

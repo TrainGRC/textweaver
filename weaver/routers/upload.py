@@ -1,13 +1,14 @@
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException, BackgroundTasks
 from moviepy.editor import VideoFileClip
 from pydantic import BaseModel, validator, Field
+import botocore
 import PyPDF2
 import mutagen
 import re
 import tempfile
 import os
 from enum import Enum
-from ..config import model, tokenizer, logger, whisper_model
+from ..config import model, tokenizer, logger, whisper_model, textract_client
 from ..utils.db import create_user_table
 from ..utils.embeddings import process_file
 
@@ -17,6 +18,7 @@ class FileType(str, Enum):
     audio = "audio"
     video = "video"
     image = "image"
+    pdf = "pdf"
     text = "text"
 
 class UserName(BaseModel):
@@ -35,22 +37,23 @@ class UserName(BaseModel):
 
 def validate_file_content(file_type: FileType, file: UploadFile) -> str:
     try:
-        # Read the file content
-        file_content = file.file.read()
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            content = file.file.read()
+            temp_file.write(content)
+            temp_file.flush()
 
-        if file_type == FileType.audio:
-            # Validate MP3 file using mutagen
-            mutagen.File(file_content)
-        elif file_type == FileType.video:
-            # Validate MP4 file using moviepy
-            VideoFileClip(file_content)
-        elif file_type == FileType.text and file.filename.endswith('.pdf'):
-            # Validate PDF file using PyPDF2
-            PyPDF2.PdfFileReader(file_content)
+            if file_type == FileType.audio:
+                mutagen.File(temp_file.name)  # Open audio file
+            elif file_type == FileType.video:
+                VideoFileClip(temp_file.name)  # Open video file
+            elif file_type == FileType.text and file.filename.endswith('.pdf'):
+                with open(temp_file.name, 'rb') as pdf_file:
+                    PyPDF2.PdfFileReader(pdf_file)  # Open PDF file
 
+        os.unlink(temp_file.name)  # Delete the temporary file
         return ""
     except:
-        return f"Invalid content for file type {file_type.value}"
+        return f"File type validation failed for {file_type.value}."
 
 def validate_file_type(file_type: FileType, file_extension: str) -> str:
     if file_type == FileType.audio and file_extension != '.mp3':
@@ -111,6 +114,7 @@ async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...)
     if file_extension not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Unsupported file extension")
     # validation_error_msg = validate_file_type(file_type, file_extension) or validate_file_content(file_type, file)
+    # logger.info(validation_error_msg)
     # if validation_error_msg:
     #     raise HTTPException(status_code=400, detail=validation_error_msg)
 
@@ -121,6 +125,8 @@ async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...)
         background_tasks.add_task(process_video, username, file, file_type)
     elif file_type == FileType.image:
         background_tasks.add_task(process_image, username, file, file_type)
+    elif file_type == FileType.pdf:
+        background_tasks.add_task(process_pdf, username, file, file_type)
     elif file_type == FileType.text:
         background_tasks.add_task(process_text, username, file, file_type)
 
@@ -186,6 +192,58 @@ async def process_video(username, file: UploadFile, file_type: FileType):
         # Remove the temporary files
         os.unlink(temp_video_file.name)
         os.unlink(temp_audio_file.name)
+
+async def process_pdf(username, file: UploadFile, file_type: FileType):
+    """
+    Process the uploaded PDF file using Amazon Textract.
+
+    Parameters:
+        username (str): The username associated with the upload.
+        file (UploadFile): The uploaded PDF file object.
+        file_type (FileType): The type of the file being uploaded (in this case, always FileType.text).
+
+    Returns:
+        dict: A dictionary containing a success message if the PDF was processed successfully.
+    """
+
+    # Create a temporary file to store the uploaded PDF
+    temp_file = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+    try:
+        # Write the uploaded file to the temporary file
+        content = await file.read()
+        temp_file.write(content)
+        temp_file.close()
+
+        # Open the PDF file and call Amazon Textract to process the PDF
+        with open(temp_file.name, 'rb') as pdf_file:
+            response = textract_client.detect_document_text(Document={'Bytes': pdf_file.read()})
+
+        # Extract the text from the Textract response
+        text_content = ""
+        for item in response["Blocks"]:
+            if item["BlockType"] == "LINE":
+                text_content += item["Text"] + "\n"
+        logger.info(f"Extracted text from PDF file: {file.filename}")
+        logger.info(f"Extracted text: {text_content}")
+        # Process the extracted text using the process_file function
+        process_file(username, {'Body': text_content}, file.filename, file_type)
+        return {"success": "PDF processed successfully"}
+
+    except botocore.exceptions.ParamValidationError as error:
+        logger.error(f"Parameter validation error: {error}")
+        raise HTTPException(status_code=400, detail="Invalid parameters provided")
+    
+    except botocore.exceptions.ClientError as error:
+        logger.error(f"Client error with Textract: {error}")
+        raise HTTPException(status_code=500, detail="Error processing PDF file")
+
+    except Exception as error:
+        logger.error(f"Unexpected error: {error}")
+        raise HTTPException(status_code=500, detail="Unexpected error processing PDF file")
+
+    finally:
+        # Remove the temporary file
+        os.unlink(temp_file.name)
 
 async def process_text(username, file: UploadFile, file_type: FileType):
     # Read the file content
