@@ -4,13 +4,12 @@ import os
 from .routers import search, upload
 from .config import close_connection
 from .version import __version__
-import multiprocessing
+
 try:
     import uvloop
     loop = "uvloop"
 except ImportError:
     loop = "asyncio"
-workers = (2 * multiprocessing.cpu_count()) + 1
 
 description = """
 Textweaver helps you search your files and a treasure trove of cybersecurity information. 🚀

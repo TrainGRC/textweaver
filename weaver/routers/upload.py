@@ -124,7 +124,7 @@ async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...)
     elif file_type == FileType.text:
         background_tasks.add_task(process_text, username, file, file_type)
 
-    return {"success": "File processing has started"}
+    return {"success": "File processing has started..."}
 
 async def process_image(username, file: UploadFile, file_type: FileType):
     pass
