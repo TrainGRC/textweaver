@@ -37,6 +37,7 @@ setup(
         'moviepy',
         'mutagen',
         'PyPDF2',
+        'uvloop',
     ],
     entry_points={
         'console_scripts': [
