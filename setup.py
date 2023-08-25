@@ -40,6 +40,7 @@ setup(
         'uvloop',
         'boto3',
         'email-validator',
+        'pydub',
     ],
     entry_points={
         'console_scripts': [

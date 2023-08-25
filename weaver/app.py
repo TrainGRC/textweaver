@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from uvicorn import run
 import os
-from .routers import search, upload
+from .routers import search, upload, speech2text
 from .config import close_connection
 from .version import __version__
 
@@ -55,6 +55,7 @@ def start_app():
 
 app.include_router(search.router)
 app.include_router(upload.router)
+app.include_router(speech2text.router)
 
 # If needed, close the connection and cursor when the app is shut down
 @app.on_event("shutdown")
