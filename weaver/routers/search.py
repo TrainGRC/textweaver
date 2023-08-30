@@ -1,10 +1,14 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, validator, Field
 import re
 from typing import Optional
+import time
 from ..config import get_connection, release_connection, model, tokenizer
 from ..utils.db import check_table_exists
-import time
+from ..utils.auth import get_auth, CognitoError
+
+
+
 
 router = APIRouter()
 
@@ -31,7 +35,7 @@ class SearchRequest(BaseModel):
         return user_table
     
 @router.post("/search")
-def search(request: SearchRequest):
+def search(request: SearchRequest, token: str = Depends(get_auth)):
     """
     Endpoint to perform a search against the embeddings dataset.
 
@@ -66,6 +70,13 @@ def search(request: SearchRequest):
         If an error occurs during the execution, a JSON object containing an error message is returned.
         Example: {"error": "description of the error"}
     """
+    authenticator = get_auth()
+    try:
+        if not authenticator.verify_token(token):
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except CognitoError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return {"message": "You have access to this endpoint"}
     connection = get_connection()
     cursor = connection.cursor()
     probes = request.probes

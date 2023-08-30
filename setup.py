@@ -41,6 +41,8 @@ setup(
         'boto3',
         'email-validator',
         'pydub',
+        'jwt',
+        'python-jose',
     ],
     entry_points={
         'console_scripts': [

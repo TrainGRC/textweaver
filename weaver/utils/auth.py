@@ -4,10 +4,12 @@ import os
 import time
 import urllib.request
 from typing import Dict, List
-
+from ..config import logger
 from jose import jwk, jwt
 from jose.utils import base64url_decode
 from pydantic import BaseModel
+from requests import get
+from fastapi import Depends, HTTPException, status
 
 
 class JWK(BaseModel):
@@ -26,7 +28,9 @@ class JWK(BaseModel):
 
 
 class CognitoAuthenticator:
-    def __init__(self, pool_region: str, pool_id: str, client_id: str) -> None:
+    def __init__(self, pool_region: str = os.environ.get("AWS_COGNITO_REGION"), 
+                 pool_id: str = os.environ.get("AWS_USER_POOL_ID"), 
+                 client_id: str = os.environ.get("AWS_USER_POOL_CLIENT_ID")) -> None:
         self.pool_region = pool_region
         self.pool_id = pool_id
         self.client_id = client_id
@@ -43,8 +47,7 @@ class CognitoAuthenticator:
             Exception when JWKS endpoint does not contain any keys
         """
 
-        file = urllib.request.urlopen(f"{self.issuer}/.well-known/jwks.json")
-        res = json.loads(file.read().decode("utf-8"))
+        res = get(f"{self.issuer}/.well-known/jwks.json").json()
         if not res.get("keys"):
             raise Exception("The JWKS endpoint does not contain any keys")
         jwks = [JWK(**key) for key in res["keys"]]
@@ -69,7 +72,8 @@ class CognitoAuthenticator:
             self._is_jwt(token)
             self._get_verified_header(token)
             self._get_verified_claims(token)
-        except CognitoError:
+        except CognitoError as e:
+            logger.error(f"Error verifying token: {e}")
             return False
         return True
 
@@ -91,8 +95,8 @@ class CognitoAuthenticator:
         try:
             jwt.get_unverified_header(token)
             jwt.get_unverified_claims(token)
-        except jwt.JWTError:
-            logging.info("Invalid JWT")
+        except jwt.JWTError as e:
+            logger.error(f"Invalid JWT: {e}")
             raise InvalidJWTError
         return True
 
@@ -113,14 +117,9 @@ class CognitoAuthenticator:
         kid = headers["kid"]
 
         # find JSON Web Key (JWK) that matches kid from token
-        key = None
-        for k in self.jwks:
-            if k.kid == kid:
-                # construct a key object from found key data
-                key = jwk.construct(k.dict())
-                break
+        key = next((jwk.construct(k.dict()) for k in self.jwks if k.kid == kid), None)
         if not key:
-            logging.info(f"Unable to find a signing key that matches '{kid}'")
+            logger.error(f"Unable to find a signing key that matches '{kid}'")
             raise InvalidKidError
 
         # get message and signature (base64 encoded)
@@ -128,7 +127,7 @@ class CognitoAuthenticator:
         signature = base64url_decode(encoded_signature.encode("utf-8"))
 
         if not key.verify(message.encode("utf8"), signature):
-            logging.info("Signature verification failed")
+            logger.error("Signature verification failed")
             raise SignatureError
 
         # signature successfully verified
@@ -149,23 +148,23 @@ class CognitoAuthenticator:
 
         # verify expiration time
         if claims["exp"] < time.time():
-            logging.info("Expired token")
+            logger.error("Expired token")
             raise TokenExpiredError
 
         # verify issuer
         if claims["iss"] != self.issuer:
-            logging.info("Invalid issuer claim")
+            logger.error("Invalid issuer claim")
             raise InvalidIssuerError
 
         # verify audience
         # note: claims["client_id"] for access token, claims["aud"] otherwise
-        if claims["client_id"] != self.client_id:
-            logging.info("Invalid audience claim")
+        if claims.get("client_id", claims.get("aud")) != self.client_id:
+            logger.error("Invalid audience claim")
             raise InvalidAudienceError
 
         # verify token use
         if claims["token_use"] != "access":
-            logging.info("Invalid token use claim")
+            logger.error("Invalid token use claim")
             raise InvalidTokenUseError
 
         # claims successfully verified
@@ -173,44 +172,46 @@ class CognitoAuthenticator:
 
 
 class CognitoError(Exception):
-    pass
+    def __init__(self, message):
+        self.message = message
+        logger.error(self.message)
+        super().__init__(self.message)
 
 
 class InvalidJWTError(CognitoError):
-    pass
+    def __init__(self):
+        super().__init__("Invalid JWT")
 
 
 class InvalidKidError(CognitoError):
-    pass
+    def __init__(self):
+        super().__init__("Unable to find a signing key that matches 'kid'")
 
 
 class SignatureError(CognitoError):
-    pass
+    def __init__(self):
+        super().__init__("Signature verification failed")
 
 
 class TokenExpiredError(CognitoError):
-    pass
+    def __init__(self):
+        super().__init__("Expired token")
 
 
 class InvalidIssuerError(CognitoError):
-    pass
+    def __init__(self):
+        super().__init__("Invalid issuer claim")
 
 
 class InvalidAudienceError(CognitoError):
-    pass
+    def __init__(self):
+        super().__init__("Invalid audience claim")
 
 
 class InvalidTokenUseError(CognitoError):
-    pass
+    def __init__(self):
+        super().__init__("Invalid token use claim")
 
 
-if __name__ == "__main__":
-    auth = CognitoAuthenticator(
-        pool_region=os.environ["AWS_COGNITO_REGION"],
-        pool_id=os.environ["AWS_USER_POOL_ID"],
-        client_id=os.environ["AWS_USER_POOL_CLIENT_ID"],
-    )
-
-    # note: if you are not using access token, see line 161
-    access_token = "my_access_token"
-    print(f"Token verified: {auth.verify_token(access_token)}")
+def get_auth() -> CognitoAuthenticator:
+    return CognitoAuthenticator()
