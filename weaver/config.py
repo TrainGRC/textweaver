@@ -4,6 +4,7 @@ import getpass
 import subprocess
 import sys
 import logging
+import pinecone
 import whisper
 from nltk.tokenize import sent_tokenize
 from transformers import BertTokenizer
@@ -90,34 +91,15 @@ whisper_model = whisper.load_model("base")
 ###                                  DB Connection Configuration                           ###                    
 ##############################################################################################
 
-# Connection parameters
-db_params = {
-    'dbname': os.getenv('DB_NAME') or input('Enter your database name: '),
-    'user': os.getenv('DB_USER') or input('Enter your database username: '),
-    'password': os.getenv('DB_PASSWORD') or getpass.getpass('Enter your database password: '),
-    'host': os.getenv('DB_HOST') or input('Enter your database hostname: '),
-    'port': os.getenv('DB_PORT') or input('Enter your database port #: ')
-}
+# Pinecone connection parameters
+PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY')
+PINECONE_ENV = os.environ.get('PINECONE_ENVIRONMENT') or 'us-east-1-aws'
+pinecone.init(
+    api_key=PINECONE_API_KEY,
+    environment=PINECONE_ENV
+)
 
-
-# Connection pool parameters
-connection_pool = pool.SimpleConnectionPool(1, 20, **db_params)
-
-# Function to get a connection from the pool
-def get_connection():
-    return connection_pool.getconn()
-
-# Function to release a connection back to the pool
-def release_connection(connection):
-    connection_pool.putconn(connection)
-
-# Function to close all connections in the pool
-def close_all_connections():
-    connection_pool.closeall()
-
-    
-def close_connection():
-    close_all_connections()
+idx = pinecone.Index("stinkbait")
 
 ##############################################################################################
 ###                                     AWS Configuration                                  ###

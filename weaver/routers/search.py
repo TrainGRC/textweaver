@@ -1,14 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, validator, Field
+import os
 import re
 from typing import Optional
 import time
-from ..config import get_connection, release_connection, model, tokenizer
+from ..config import get_connection, release_connection, model, tokenizer, logger, idx
 from ..utils.db import check_table_exists
 from ..utils.auth import get_auth, CognitoError
-
-
-
 
 router = APIRouter()
 
@@ -19,9 +17,7 @@ top_k = 5  # Default value; adjust as needed
 class SearchRequest(BaseModel):
     query: str = Field(..., description="The search query string.")
     results_to_return: int = Field(top_k, description="Number of results to return. Default is 5.")
-    search_type: str = Field("euclidean", description="Type of search algorithm to use. Default is 'euclidean'. Other options are 'cosine' and 'inner_product'.")
-    probes: int = Field(2, description="Number of probes to use for search. Larger # increases recall (accuracy) with a tradeoff for latency. Default is 2.")
-    workers: int = Field(1, description="Number of workers to use for DB search parallelization. Default is 1.")
+    #search_type: str = Field("euclidean", description="Type of search algorithm to use. Default is 'euclidean'. Other options are 'cosine' and 'inner_product'.")
     user_table: Optional[str] = Field(None, description="Optional parameter to specify username for the table to search, must be an alphanumeric value or a valid email address.")
 
     @validator("user_table", allow_reuse=True)
@@ -35,7 +31,7 @@ class SearchRequest(BaseModel):
         return user_table
     
 @router.post("/search")
-def search(request: SearchRequest, token: str = Depends(get_auth)):
+def search(request: SearchRequest): #, token: str = Depends(get_auth)
     """
     Endpoint to perform a search against the embeddings dataset.
 
@@ -70,78 +66,38 @@ def search(request: SearchRequest, token: str = Depends(get_auth)):
         If an error occurs during the execution, a JSON object containing an error message is returned.
         Example: {"error": "description of the error"}
     """
-    authenticator = get_auth()
-    try:
-        if not authenticator.verify_token(token):
-            raise HTTPException(status_code=401, detail="Invalid token")
-    except CognitoError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    return {"message": "You have access to this endpoint"}
-    connection = get_connection()
-    cursor = connection.cursor()
-    probes = request.probes
+    # authenticator = get_auth()
+    # try:
+    #     if not authenticator.verify_token(token):
+    #         raise HTTPException(status_code=401, detail="Invalid token")
+    # except CognitoError:
+    #     raise HTTPException(status_code=401, detail="Invalid token")
+    # return {"message": "You have access to this endpoint"}
     query = request.query
-    workers = request.workers
     results_to_return = request.results_to_return
     query_vector = model.encode([[instruction, query]])[0].tolist()
-    search_type = request.search_type
-    table_to_search = "embeddings" if request.user_table is None else request.user_table.replace('@', '__').replace('.', '_')
-    if not check_table_exists(table_to_search):
-        raise HTTPException(status_code=404, detail=f"User DB '{table_to_search}' does not exist.")
-    # Validate and get the corresponding operator
-    operator_mapping = {
-        "euclidean": "<->",
-        "inner_product": "<#>",
-        "cosine": "<=>"
-    }
-    operator = operator_mapping.get(search_type, "<->")  # Default to euclidean if an invalid value is provided
-    sql_query = f"""SELECT filename, metadata, embeddings_text, embeddings {operator} %s::vector AS distance
-                   FROM {table_to_search}
-                   ORDER BY distance
-                   LIMIT %s"""
     try:
         start_time = time.time()        
-        cursor.execute("BEGIN;")
-        cursor.execute(f"SET LOCAL ivfflat.probes = {probes};")
-        cursor.execute(f"SET LOCAL max_parallel_workers_per_gather = {workers};")
-        cursor.execute(sql_query, (query_vector, results_to_return))
-        top_results = cursor.fetchall()
+        top_results = idx.query(query_vector, top_k=results_to_return, include_metadata=True)
         end_time = time.time()
         time_elapsed = round(end_time - start_time, 2)
-        cursor.execute("COMMIT;")
         results = []
-        for result in top_results:
-            filename, metadata, embeddings_text, similarity_score = result
-            parts = embeddings_text.split('\n', 1)
-            json_header_line = parts[0] if len(parts) > 1 else None
-            text_body = parts[1] if len(parts) > 1 else parts[0]
-            if search_type == "cosine":
-                similarity_score = 1 - similarity_score
-            elif search_type == "inner_product":
-                similarity_score = abs(similarity_score)
+        for result in top_results['matches']:
+            doc_id, metadata = result['id'], result['metadata']
             # Extract the Title and Link or file information from the metadata
-            links = metadata.get("links", [])
-            if links:
-                for link_info in links:
-                    title = link_info.get("Title")
-                    link = link_info.get("Link") or link_info.get("link")
-                    result_data = {
-                        "Title": title,
-                        "Link": link,
-                        "Filename": filename,
-                        "embedding_text": text_body,
-                        "similarity_score": round(similarity_score, 2)
-                    }
-            else:
-                file_key = metadata.get("file_key")
-                file_type = metadata.get("file_type")
-                result_data = {
-                    "File Name": f"{file_key}" if file_key else None,
-                    "File Type": f"{file_type}" if file_type else None,
-                    "embedding_text": text_body,
-                    "similarity_score": round(similarity_score, 2)
-                }
+            logger.info(f"Result: {result}")
+            link = metadata.get("URL", [])
 
+            result_data = {
+                "Title": metadata.get("Title", "unknown"),
+                "Link": link,
+                "Published": metadata.get("PublicationDate", "unknown"),
+                "Author": metadata.get("Author", "unknown"),
+                "Tags": metadata.get("Tags", "unknown"),
+                "Filename": metadata.get("Filename", "unknown"),
+                "embedding_text": metadata.get("text", "unknown"),
+                "similarity_score": round(result['score'], 2)
+            }
             results.append(result_data)
 
         response = {
@@ -152,8 +108,7 @@ def search(request: SearchRequest, token: str = Depends(get_auth)):
         return response
 
     except Exception as e:
-        connection.rollback()
         # Handle the exception as required
         return {"error": str(e)}
     finally:
-        release_connection(connection)
+        pass
