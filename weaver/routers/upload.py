@@ -103,9 +103,6 @@ async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...)
         - Specific error responses should be handled based on the requirements of the application.
     """
 
-    # Validate Username is e-mail address or only alphanumeric
-    username_model = UserName(username=username) # Trigger the validation
-
     # Check if the table exists, and create it if not
     #create_user_table(username)
 
@@ -117,7 +114,8 @@ async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...)
     # logger.info(validation_error_msg)
     # if validation_error_msg:
     #     raise HTTPException(status_code=400, detail=validation_error_msg)
-
+    # Validate Username is e-mail address or only alphanumeric
+    #username_model = UserName(username=username) # Trigger the validation
     # Add the processing function as a background task
     if file_type == FileType.audio:
         background_tasks.add_task(process_audio, username, file, file_type)

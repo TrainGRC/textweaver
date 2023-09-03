@@ -9,7 +9,7 @@ from jose import jwk, jwt
 from jose.utils import base64url_decode
 from pydantic import BaseModel
 from requests import get
-from fastapi import Depends, HTTPException, status
+from fastapi import Request, Depends, HTTPException, status
 
 
 class JWK(BaseModel):
@@ -54,11 +54,8 @@ class CognitoAuthenticator:
         logger.info(f"Found {len(jwks)} keys")
         return jwks
 
-    def verify_token(
-        self,
-        token: str,
-    ) -> bool:
-        """Verify a JSON Web Token (JWT).
+    def verify_token(self, token: str) -> Dict:
+        """Verify a JSON Web Token (JWT) and return its claims.
 
         For more details refer to:
         https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-verifying-a-jwt.html
@@ -66,17 +63,17 @@ class CognitoAuthenticator:
         Args:
             token: The token to verify
         Returns:
-            True if valid, False otherwise
+            A dict representation of the token claims if valid, None otherwise
         """
-
+        logger.info(f"Verifying token: {token}")
         try:
             self._is_jwt(token)
             self._get_verified_header(token)
-            self._get_verified_claims(token)
+            claims = self._get_verified_claims(token)
         except CognitoError as e:
             logger.error(f"Error verifying token: {e}")
-            return False
-        return True
+            return None
+        return claims
 
     def _is_jwt(self, token: str) -> bool:
         """Validate a JSON Web Token (JWT).
@@ -164,7 +161,7 @@ class CognitoAuthenticator:
             raise InvalidAudienceError
 
         # verify token use
-        if claims["token_use"] != "access":
+        if claims["token_use"] != "id":
             logger.error("Invalid token use claim")
             raise InvalidTokenUseError
 
@@ -214,5 +211,13 @@ class InvalidTokenUseError(CognitoError):
         super().__init__("Invalid token use claim")
 
 
-def get_auth() -> CognitoAuthenticator:
-    return CognitoAuthenticator()
+def get_auth(request: Request, authenticator: CognitoAuthenticator = Depends(CognitoAuthenticator)):
+    auth_header = request.headers.get('Authorization')
+    if auth_header:
+        token = auth_header.split(' ')[1]  # extract the JWT token
+        claims = authenticator.verify_token(token)
+        if claims is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return claims
+    else:
+        raise HTTPException(status_code=401, detail="Missing Authorization header")

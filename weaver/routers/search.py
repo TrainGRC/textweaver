@@ -6,7 +6,7 @@ from typing import Optional
 import time
 from ..config import model, tokenizer, logger, idx
 from ..utils.db import vector_query
-from ..utils.auth import get_auth, CognitoError
+from ..utils.auth import get_auth, CognitoAuthenticator, CognitoError
 
 router = APIRouter()
 
@@ -30,7 +30,7 @@ class SearchRequest(BaseModel):
         return user_table
     
 @router.post("/search")
-def search(request: SearchRequest): #, token: str = Depends(get_auth)):
+def search(request: SearchRequest, claims: dict = Depends(get_auth)):
     """
     Endpoint to perform a search against the embeddings dataset.
 
@@ -67,13 +67,8 @@ def search(request: SearchRequest): #, token: str = Depends(get_auth)):
     """
 
     ## Uncomment the following lines to enable authentication
-    # authenticator = get_auth()
-    # try:
-    #     if not authenticator.verify_token(token):
-    #         raise HTTPException(status_code=401, detail="Invalid token")
-    # except CognitoError:
-    #     raise HTTPException(status_code=401, detail="Invalid token")
-    # return {"message": "You have access to this endpoint"}
+    username = claims.get('cognito:username')
+    logger.info(f"Authenticated user: {username}")
     query = request.query
     results_to_return = request.results_to_return
     try:
