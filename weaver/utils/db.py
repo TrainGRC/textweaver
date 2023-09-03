@@ -1,7 +1,6 @@
 from ..config import model, idx, logger
 import numpy as np
 import json
-
     
 def batch_insert_into_pinecone(file_key, username, records):
     try:

@@ -4,9 +4,9 @@ import os
 import re
 from typing import Optional
 import time
-from ..config import model, tokenizer, logger, idx
+from ..config import logger
 from ..utils.db import vector_query
-from ..utils.auth import get_auth, CognitoAuthenticator, CognitoError
+from ..utils.auth import get_auth
 
 router = APIRouter()
 

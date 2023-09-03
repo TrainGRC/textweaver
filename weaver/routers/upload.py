@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile, Form, HTTPException, BackgroundTasks
+from fastapi import APIRouter, File, UploadFile, Form, HTTPException, BackgroundTasks, Depends
 from moviepy.editor import VideoFileClip
 from pydantic import BaseModel, validator, Field
 import botocore
@@ -8,9 +8,9 @@ import re
 import tempfile
 import os
 from enum import Enum
-from ..config import model, tokenizer, logger, whisper_model, textract_client
-#from ..utils.db import create_user_table
+from ..config import logger, whisper_model, textract_client
 from ..utils.embeddings import process_file
+from ..utils.auth import get_auth
 
 router = APIRouter()
 
@@ -20,20 +20,6 @@ class FileType(str, Enum):
     image = "image"
     pdf = "pdf"
     text = "text"
-
-class UserName(BaseModel):
-    username: str = Field(..., description="Username for the upload. Must be an alphanumeric value or a valid email address.")
-
-    @validator("username", allow_reuse=True)
-    def validate_user_table(cls, username):
-        if username is not None:
-            if not username.isalnum():
-                # Check if it's a valid email pattern
-                pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-                if not re.match(pattern, username):
-                    raise ValueError("username must be an alphanumeric value or a valid email address.")
-            username = username.replace('@', '__').replace('.', '_')  # Replacing both @ and . with _
-        return username
 
 def validate_file_content(file_type: FileType, file: UploadFile) -> str:
     try:
@@ -69,7 +55,7 @@ def validate_file_type(file_type: FileType, file_extension: str) -> str:
 ALLOWED_EXTENSIONS = {'.pdf', '.jpg', '.png', '.txt', '.mp3', '.mp4'}
 
 @router.post("/upload/")
-async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...), file_type: FileType = Form(...), username: str = Form(...)):
+async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...), file_type: FileType = Form(...), claims: dict = Depends(get_auth)):
     """
     Endpoint to upload and process different types of files: audio, video, image, and text.
 
@@ -103,20 +89,13 @@ async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...)
         - Specific error responses should be handled based on the requirements of the application.
     """
 
-    # Check if the table exists, and create it if not
-    #create_user_table(username)
-
     # Check file extension
     file_extension = os.path.splitext(file.filename)[1]
     if file_extension not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Unsupported file extension")
-    # validation_error_msg = validate_file_type(file_type, file_extension) or validate_file_content(file_type, file)
-    # logger.info(validation_error_msg)
-    # if validation_error_msg:
-    #     raise HTTPException(status_code=400, detail=validation_error_msg)
-    # Validate Username is e-mail address or only alphanumeric
-    #username_model = UserName(username=username) # Trigger the validation
+
     # Add the processing function as a background task
+    username = claims.get('cognito:username')
     if file_type == FileType.audio:
         background_tasks.add_task(process_audio, username, file, file_type)
     elif file_type == FileType.video:
