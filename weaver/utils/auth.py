@@ -51,7 +51,6 @@ class CognitoAuthenticator:
         if not res.get("keys"):
             raise Exception("The JWKS endpoint does not contain any keys")
         jwks = [JWK(**key) for key in res["keys"]]
-        logger.info(f"Found {len(jwks)} keys")
         return jwks
 
     def verify_token(self, token: str) -> Dict:
@@ -65,7 +64,6 @@ class CognitoAuthenticator:
         Returns:
             A dict representation of the token claims if valid, None otherwise
         """
-        logger.info(f"Verifying token: {token}")
         try:
             self._is_jwt(token)
             self._get_verified_header(token)
