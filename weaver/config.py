@@ -93,7 +93,7 @@ whisper_model = whisper.load_model("base")
 
 # Pinecone connection parameters
 PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY')
-PINECONE_ENV = os.environ.get('PINECONE_ENVIRONMENT') or 'us-east-1-aws'
+PINECONE_ENV = os.environ.get('PINECONE_ENVIRONMENT')
 pinecone.init(
     api_key=PINECONE_API_KEY,
     environment=PINECONE_ENV

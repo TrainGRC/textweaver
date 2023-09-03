@@ -43,6 +43,7 @@ setup(
         'pydub',
         'jwt',
         'python-jose',
+        'pinecone-client',
     ],
     entry_points={
         'console_scripts': [

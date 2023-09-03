@@ -4,14 +4,13 @@ import os
 import re
 from typing import Optional
 import time
-from ..config import get_connection, release_connection, model, tokenizer, logger, idx
-from ..utils.db import check_table_exists
+from ..config import model, tokenizer, logger, idx
+from ..utils.db import vector_query
 from ..utils.auth import get_auth, CognitoError
 
 router = APIRouter()
 
 # Define the model and the tokenizer
-instruction = "Represent the cybersecurity content:"
 top_k = 5  # Default value; adjust as needed
 
 class SearchRequest(BaseModel):
@@ -31,7 +30,7 @@ class SearchRequest(BaseModel):
         return user_table
     
 @router.post("/search")
-def search(request: SearchRequest): #, token: str = Depends(get_auth)
+def search(request: SearchRequest): #, token: str = Depends(get_auth)):
     """
     Endpoint to perform a search against the embeddings dataset.
 
@@ -66,6 +65,8 @@ def search(request: SearchRequest): #, token: str = Depends(get_auth)
         If an error occurs during the execution, a JSON object containing an error message is returned.
         Example: {"error": "description of the error"}
     """
+
+    ## Uncomment the following lines to enable authentication
     # authenticator = get_auth()
     # try:
     #     if not authenticator.verify_token(token):
@@ -75,17 +76,15 @@ def search(request: SearchRequest): #, token: str = Depends(get_auth)
     # return {"message": "You have access to this endpoint"}
     query = request.query
     results_to_return = request.results_to_return
-    query_vector = model.encode([[instruction, query]])[0].tolist()
     try:
         start_time = time.time()        
-        top_results = idx.query(query_vector, top_k=results_to_return, include_metadata=True)
+        top_results = vector_query(query, results_to_return)
         end_time = time.time()
         time_elapsed = round(end_time - start_time, 2)
         results = []
         for result in top_results['matches']:
             doc_id, metadata = result['id'], result['metadata']
             # Extract the Title and Link or file information from the metadata
-            logger.info(f"Result: {result}")
             link = metadata.get("URL", [])
 
             result_data = {

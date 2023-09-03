@@ -9,7 +9,7 @@ import tempfile
 import os
 from enum import Enum
 from ..config import model, tokenizer, logger, whisper_model, textract_client
-from ..utils.db import create_user_table
+#from ..utils.db import create_user_table
 from ..utils.embeddings import process_file
 
 router = APIRouter()
@@ -107,7 +107,7 @@ async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...)
     username_model = UserName(username=username) # Trigger the validation
 
     # Check if the table exists, and create it if not
-    create_user_table(username)
+    #create_user_table(username)
 
     # Check file extension
     file_extension = os.path.splitext(file.filename)[1]

@@ -2,7 +2,7 @@ import json
 from ksuid import ksuid
 from nltk.tokenize import sent_tokenize
 from ..config import logger, model, tokenizer
-from ..utils.db import insert_into_db
+from ..utils.db import insert_user_record
 
     
 def process_file(username, file_obj, file_key, file_type):
@@ -59,7 +59,7 @@ def process_file(username, file_obj, file_key, file_type):
         chunk_embedding = model.encode([[instruction, chunk_text]])  # Adjust 'instruction' as needed
         try:
             logger.info(f"Inserting into DB: {file_key}")
-            insert_into_db(username, file_key, header, chunk_embedding, chunk_text)
+            insert_user_record(username, file_key, header, chunk_embedding, chunk_text)
         except Exception as e:
             logger.error(f"File corrupted: {file_key} Error: {e}")
 
