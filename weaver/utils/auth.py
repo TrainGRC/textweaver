@@ -208,8 +208,10 @@ class InvalidTokenUseError(CognitoError):
     def __init__(self):
         super().__init__("Invalid token use claim")
 
+def get_cognito_authenticator() -> CognitoAuthenticator:
+    return CognitoAuthenticator()
 
-def get_auth(request: Request, authenticator: CognitoAuthenticator = Depends(CognitoAuthenticator)):
+def get_auth(request: Request, authenticator: CognitoAuthenticator = Depends(get_cognito_authenticator)):
     auth_header = request.headers.get('Authorization')
     if auth_header:
         token = auth_header.split(' ')[1]  # extract the JWT token

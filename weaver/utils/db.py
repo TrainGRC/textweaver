@@ -5,6 +5,7 @@ import json
 def batch_insert_into_pinecone(file_key, username, records):
     try:
         idx.upsert(records, namespace=username)
+        logger.info(f"Successfully batch inserted {len(records)} records")
     except Exception as e:
         with open("errors.txt", "a+") as error_file:  # Open "errors.txt" in append mode
             for file_key, *_ in records:

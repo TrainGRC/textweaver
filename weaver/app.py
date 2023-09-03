@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from uvicorn import run
 import os
-from .routers import search, upload, speech2text
+from .routers import search, upload
 from .version import __version__
 
 try:
@@ -54,7 +54,6 @@ def start_app():
 
 app.include_router(search.router)
 app.include_router(upload.router)
-app.include_router(speech2text.router)
 
 if __name__ == "__main__":
     start_app()

@@ -103,11 +103,9 @@ async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...)
     elif file_type == FileType.image:
         background_tasks.add_task(process_image, username, file, file_type)
     elif file_type == FileType.pdf:
-        background_tasks.add_task(process_pdf, username, file, file_type)
+        await process_pdf(username, file, file_type)
     elif file_type == FileType.text:
         background_tasks.add_task(process_text, username, file, file_type)
-
-    return {"success": "File processing has started..."}
 
 async def process_image(username, file: UploadFile, file_type: FileType):
     pass
@@ -194,7 +192,23 @@ async def process_pdf(username, file: UploadFile, file_type: FileType):
 
         # Open the PDF file and call Amazon Textract to process the PDF
         with open(temp_file.name, 'rb') as pdf_file:
-            response = textract_client.detect_document_text(Document={'Bytes': pdf_file.read()})
+            try:
+                response = textract_client.detect_document_text(Document={'Bytes': pdf_file.read()})
+            except textract_client.exceptions.UnsupportedDocumentException as error:
+                logger.error(f"Unsupported document: {error}")
+                raise HTTPException(status_code=400, detail="Unsupported document type. Please upload a valid PDF file.")
+            except botocore.exceptions.ParamValidationError as error:
+                logger.error(f"Parameter validation error: {error}")
+                raise HTTPException(status_code=400, detail="Invalid parameters provided")
+            except botocore.exceptions.ClientError as error:
+                logger.error(f"Client error with Textract: {error}")
+                raise HTTPException(status_code=500, detail="Error processing PDF file")
+            except Exception as error:
+                logger.error(f"Unexpected error: {error}")
+                raise HTTPException(status_code=500, detail="Unexpected error processing PDF file")
+            except Exception as error:
+                logger.error(f"Unexpected error: {error}")
+                raise HTTPException(status_code=500, detail="Unexpected error processing PDF file")
 
         # Extract the text from the Textract response
         text_content = ""
@@ -206,18 +220,6 @@ async def process_pdf(username, file: UploadFile, file_type: FileType):
         # Process the extracted text using the process_file function
         process_file(username, {'Body': text_content}, file.filename, file_type)
         return {"success": "PDF processed successfully"}
-
-    except botocore.exceptions.ParamValidationError as error:
-        logger.error(f"Parameter validation error: {error}")
-        raise HTTPException(status_code=400, detail="Invalid parameters provided")
-    
-    except botocore.exceptions.ClientError as error:
-        logger.error(f"Client error with Textract: {error}")
-        raise HTTPException(status_code=500, detail="Error processing PDF file")
-
-    except Exception as error:
-        logger.error(f"Unexpected error: {error}")
-        raise HTTPException(status_code=500, detail="Unexpected error processing PDF file")
 
     finally:
         # Remove the temporary file
