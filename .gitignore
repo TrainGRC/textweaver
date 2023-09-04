@@ -1,0 +1,44 @@
+# .gitignore
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg
+*.egg-info/
+MANIFEST
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Environment files
+.env
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+
+# Operating systems
+.DS_Store
+Thumbs.db
