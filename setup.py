@@ -44,6 +44,7 @@ setup(
         'jwt',
         'python-jose',
         'pinecone-client',
+        'python-dotenv',
     ],
     entry_points={
         'console_scripts': [

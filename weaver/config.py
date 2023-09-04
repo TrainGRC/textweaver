@@ -6,13 +6,52 @@ import sys
 import logging
 import pinecone
 import whisper
+import boto3
 from botocore.exceptions import ClientError
 from typing import Optional
 from nltk.tokenize import sent_tokenize
 from transformers import BertTokenizer
 from InstructorEmbedding import INSTRUCTOR
 from termcolor import colored
-import boto3
+from dotenv import load_dotenv
+
+##############################################################################################
+###                                  Logging Configuration                                 ###
+##############################################################################################
+
+class ColoredConsoleHandler(logging.StreamHandler):
+    COLORS = {
+        'DEBUG': 'blue',
+        'INFO': 'green',
+        'WARNING': 'yellow',
+        'ERROR': 'red',
+        'CRITICAL': 'magenta',
+    }
+
+    def emit(self, record):
+        log_message = self.format(record)
+        color = self.COLORS.get(record.levelname, 'white')
+        print(colored(log_message, color))
+
+# Create a logger
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+
+# Create the colored console handler
+console_handler = ColoredConsoleHandler()
+console_handler.setLevel(logging.INFO)  # Set level for the console handler
+
+formatter = logging.Formatter('%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+console_handler.setFormatter(formatter)
+
+# Add the handlers to the logger
+logger.addHandler(console_handler)
+
+try:
+    load_dotenv()
+except Exception as e:
+    logger.error(f"Failed to load environment variables: {e}")
 
 ##############################################################################################
 ###                                     AWS Configuration                                  ###
@@ -51,39 +90,7 @@ def publish_sns_notification(info: str, subject: Optional[str] = None) -> Option
         print(f"Failed to publish SNS message: {e}")
         return None
 
-##############################################################################################
-###                                  Logging Configuration                                 ###
-##############################################################################################
-
-class ColoredConsoleHandler(logging.StreamHandler):
-    COLORS = {
-        'DEBUG': 'blue',
-        'INFO': 'green',
-        'WARNING': 'yellow',
-        'ERROR': 'red',
-        'CRITICAL': 'magenta',
-    }
-
-    def emit(self, record):
-        log_message = self.format(record)
-        color = self.COLORS.get(record.levelname, 'white')
-        print(colored(log_message, color))
-
-# Create a logger
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-
-
-# Create the colored console handler
-console_handler = ColoredConsoleHandler()
-console_handler.setLevel(logging.INFO)  # Set level for the console handler
-
-formatter = logging.Formatter('%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-console_handler.setFormatter(formatter)
-
-# Add the handlers to the logger
-logger.addHandler(console_handler)
-
+# Create a logging handler that publishes to SNS
 class SNSNotificationHandler(logging.Handler):
     def emit(self, record):
         log_entry = self.format(record)

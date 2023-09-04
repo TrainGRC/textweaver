@@ -92,7 +92,7 @@ class CognitoAuthenticator:
             jwt.get_unverified_header(token)
             jwt.get_unverified_claims(token)
         except jwt.JWTError as e:
-            logger.error(f"Invalid JWT: {e}")
+            logger.warning(f"Invalid JWT: {e}")
             raise InvalidJWTError
         return True
 
@@ -115,7 +115,7 @@ class CognitoAuthenticator:
         # find JSON Web Key (JWK) that matches kid from token
         key = next((jwk.construct(k.dict()) for k in self.jwks if k.kid == kid), None)
         if not key:
-            logger.error(f"Unable to find a signing key that matches '{kid}'")
+            logger.warning(f"Unable to find a signing key that matches '{kid}'")
             raise InvalidKidError
 
         # get message and signature (base64 encoded)
@@ -123,7 +123,7 @@ class CognitoAuthenticator:
         signature = base64url_decode(encoded_signature.encode("utf-8"))
 
         if not key.verify(message.encode("utf8"), signature):
-            logger.error("Signature verification failed")
+            logger.warning("Signature verification failed")
             raise SignatureError
 
         # signature successfully verified
@@ -144,23 +144,23 @@ class CognitoAuthenticator:
 
         # verify expiration time
         if claims["exp"] < time.time():
-            logger.error("Expired token")
+            logger.warning("Expired token")
             raise TokenExpiredError
 
         # verify issuer
         if claims["iss"] != self.issuer:
-            logger.error("Invalid issuer claim")
+            logger.warning("Invalid issuer claim")
             raise InvalidIssuerError
 
         # verify audience
         # note: claims["client_id"] for access token, claims["aud"] otherwise
         if claims.get("client_id", claims.get("aud")) != self.client_id:
-            logger.error("Invalid audience claim")
+            logger.warning("Invalid audience claim")
             raise InvalidAudienceError
 
         # verify token use
         if claims["token_use"] != "id":
-            logger.error("Invalid token use claim")
+            logger.warning("Invalid token use claim")
             raise InvalidTokenUseError
 
         # claims successfully verified
@@ -170,7 +170,7 @@ class CognitoAuthenticator:
 class CognitoError(Exception):
     def __init__(self, message):
         self.message = message
-        logger.error(self.message)
+        logger.warning(self.message)
         super().__init__(self.message)
 
 

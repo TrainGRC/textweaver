@@ -22,5 +22,5 @@ def vector_query(query, results_to_return, username=None):
             top_results = idx.query(query_vector, top_k=results_to_return, include_metadata=True)
         return top_results
     except Exception as e:
-        logger.info(f"An error occurred while querying the database: {e}")
+        logger.error(f"An error occurred while querying the database: {e}")
         raise
