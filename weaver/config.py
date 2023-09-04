@@ -13,7 +13,7 @@ from nltk.tokenize import sent_tokenize
 from transformers import BertTokenizer
 from InstructorEmbedding import INSTRUCTOR
 from termcolor import colored
-from dotenv import load_dotenv, find_dotenv
+from dotenv import load_dotenv
 
 
 ##############################################################################################
@@ -52,13 +52,14 @@ logger.addHandler(console_handler)
 ##############################################################################################
 ###                          Environment Variables Configuration                           ###
 ##############################################################################################
-
+# Load environment variables from .env file
 try:
-    load_dotenv(find_dotenv())
-    logger.info(f"AWS_ACCESS_KEY_ID: {os.getenv('AWS_ACCESS_KEY_ID')}")
-    logger.info(f"SNS_TOPIC_NAME: {os.getenv('SNS_TOPIC_NAME')}")
+    env_file=load_dotenv('.env')
 except Exception as e:
-    logger.error(f"Failed to load environment variables: {e}")
+    logger.error(f"Error loading environment variables: {e}")
+if env_file is False:
+    logger.error("Environment file not found. Please create a .env file in the current working directory.")
+    sys.exit(1)
 ##############################################################################################
 ###                                     AWS Configuration                                  ###
 ##############################################################################################
@@ -108,7 +109,7 @@ logger.addHandler(sns_handler)
 ##############################################################################################
 ##                            Embedding Model and Tokenizer                                 ##
 ##############################################################################################
-model = INSTRUCTOR('hkunlp/instructor-xl')
+model = INSTRUCTOR(f"{os.getenv('MODEL_PATH')}")
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 ##############################################################################################
