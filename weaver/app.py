@@ -3,6 +3,7 @@ from uvicorn import run
 import os
 from .routers import search, upload
 from .version import __version__
+from .config import publish_sns_notification
 
 try:
     import uvloop
@@ -54,6 +55,10 @@ def start_app():
 
 app.include_router(search.router)
 app.include_router(upload.router)
+
+@app.on_event("shutdown")
+def shutdown_event():
+    publish_sns_notification("Stinkbait server has shut down.", "Stinkbait Shutdown")
 
 if __name__ == "__main__":
     start_app()

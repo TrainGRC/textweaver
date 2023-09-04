@@ -6,12 +6,50 @@ import sys
 import logging
 import pinecone
 import whisper
+from botocore.exceptions import ClientError
+from typing import Optional
 from nltk.tokenize import sent_tokenize
 from transformers import BertTokenizer
 from InstructorEmbedding import INSTRUCTOR
 from termcolor import colored
 import boto3
 
+##############################################################################################
+###                                     AWS Configuration                                  ###
+##############################################################################################
+
+# Get AWS credentials from environment variables
+access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+default_region = os.getenv('AWS_DEFAULT_REGION')
+
+# Check if the required environment variables are set
+if not access_key_id or not secret_access_key or not default_region:
+    raise EnvironmentError('AWS credentials not found in environment variables.')
+
+# Create a boto3 session
+aws_session = boto3.Session(
+    aws_access_key_id=access_key_id,
+    aws_secret_access_key=secret_access_key,
+    region_name=default_region
+)
+
+# Create a boto3 Textract client using the session
+textract_client = aws_session.client('textract')
+
+def publish_sns_notification(info: str, subject: Optional[str] = None) -> Optional[str]:
+    try:
+        sns_client = aws_session.client('sns')
+        topic_arn = f"arn:aws:sns:us-east-1:502534243523:{os.getenv('TOPIC_NAME')}"
+        message = info
+        publish_args = {"TopicArn": topic_arn, "Message": message}
+        if subject is not None:
+            publish_args["Subject"] = subject
+        response = sns_client.publish(**publish_args)
+        return response.get("MessageId")
+    except ClientError as e:
+        print(f"Failed to publish SNS message: {e}")
+        return None
 
 ##############################################################################################
 ###                                  Logging Configuration                                 ###
@@ -46,7 +84,18 @@ console_handler.setFormatter(formatter)
 # Add the handlers to the logger
 logger.addHandler(console_handler)
 
-# Model and Tokenizer
+class SNSNotificationHandler(logging.Handler):
+    def emit(self, record):
+        log_entry = self.format(record)
+        publish_sns_notification(log_entry, subject="Stinkbait Error")
+
+sns_handler = SNSNotificationHandler()
+sns_handler.setLevel(logging.ERROR)
+logger.addHandler(sns_handler)
+
+##############################################################################################
+##                            Embedding Model and Tokenizer                                 ##
+##############################################################################################
 model = INSTRUCTOR('hkunlp/instructor-xl')
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
@@ -100,26 +149,3 @@ pinecone.init(
 )
 
 idx = pinecone.Index("stinkbait")
-
-##############################################################################################
-###                                     AWS Configuration                                  ###
-##############################################################################################
-
-# Get AWS credentials from environment variables
-access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
-secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
-default_region = os.getenv('AWS_DEFAULT_REGION')
-
-# Check if the required environment variables are set
-if not access_key_id or not secret_access_key or not default_region:
-    raise EnvironmentError('AWS credentials not found in environment variables.')
-
-# Create a boto3 session
-aws_session = boto3.Session(
-    aws_access_key_id=access_key_id,
-    aws_secret_access_key=secret_access_key,
-    region_name=default_region
-)
-
-# Create a boto3 Textract client using the session
-textract_client = aws_session.client('textract')
