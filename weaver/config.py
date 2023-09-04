@@ -13,7 +13,8 @@ from nltk.tokenize import sent_tokenize
 from transformers import BertTokenizer
 from InstructorEmbedding import INSTRUCTOR
 from termcolor import colored
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
+
 
 ##############################################################################################
 ###                                  Logging Configuration                                 ###
@@ -48,11 +49,16 @@ console_handler.setFormatter(formatter)
 # Add the handlers to the logger
 logger.addHandler(console_handler)
 
+##############################################################################################
+###                          Environment Variables Configuration                           ###
+##############################################################################################
+
 try:
-    load_dotenv()
+    load_dotenv(find_dotenv())
+    logger.info(f"AWS_ACCESS_KEY_ID: {os.getenv('AWS_ACCESS_KEY_ID')}")
+    logger.info(f"SNS_TOPIC_NAME: {os.getenv('SNS_TOPIC_NAME')}")
 except Exception as e:
     logger.error(f"Failed to load environment variables: {e}")
-
 ##############################################################################################
 ###                                     AWS Configuration                                  ###
 ##############################################################################################
@@ -79,7 +85,7 @@ textract_client = aws_session.client('textract')
 def publish_sns_notification(info: str, subject: Optional[str] = None) -> Optional[str]:
     try:
         sns_client = aws_session.client('sns')
-        topic_arn = f"arn:aws:sns:us-east-1:502534243523:{os.getenv('TOPIC_NAME')}"
+        topic_arn = f"arn:aws:sns:us-east-1:502534243523:{os.getenv('SNS_TOPIC_NAME')}"
         message = info
         publish_args = {"TopicArn": topic_arn, "Message": message}
         if subject is not None:
@@ -99,7 +105,6 @@ class SNSNotificationHandler(logging.Handler):
 sns_handler = SNSNotificationHandler()
 sns_handler.setLevel(logging.ERROR)
 logger.addHandler(sns_handler)
-
 ##############################################################################################
 ##                            Embedding Model and Tokenizer                                 ##
 ##############################################################################################
