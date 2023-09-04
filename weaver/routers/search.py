@@ -15,19 +15,8 @@ top_k = 5  # Default value; adjust as needed
 
 class SearchRequest(BaseModel):
     query: str = Field(..., description="The search query string.")
-    results_to_return: int = Field(top_k, description="Number of results to return. Default is 5.")
-    #search_type: str = Field("euclidean", description="Type of search algorithm to use. Default is 'euclidean'. Other options are 'cosine' and 'inner_product'.")
-    user_table: Optional[str] = Field(None, description="Optional parameter to specify username for the table to search, must be an alphanumeric value or a valid email address.")
-
-    @validator("user_table", allow_reuse=True)
-    def validate_user_table(cls, user_table):
-        if user_table is not None:
-            if not user_table.isalnum():
-                # Check if it's a valid email pattern
-                pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-                if not re.match(pattern, user_table):
-                    raise ValueError("user_table must be an alphanumeric value or a valid email address.")
-        return user_table
+    results_to_return: Optional[int] = Field(top_k, description="Number of results to return. Default is 5.")
+    user_table: Optional[bool] = Field(False, description="Optional parameter to specify username for the table to search, must be an alphanumeric value or a valid email address.")
     
 @router.post("/search")
 def search(request: SearchRequest, claims: dict = Depends(get_auth)):
@@ -37,7 +26,7 @@ def search(request: SearchRequest, claims: dict = Depends(get_auth)):
     Takes a JSON object containing the search query and the number of results to return.
 
     Parameters:
-        request (SearchRequest): JSON object containing 'query' (str) and optional 'results_to_return' (int).
+        request (SearchRequest): JSON object containing 'query' (str), optional 'results_to_return' (int), and optional 'user_table' (bool).
                                  Example: {"query": "what is malware", "results_to_return": 10}
 
     Curl example:
@@ -67,13 +56,12 @@ def search(request: SearchRequest, claims: dict = Depends(get_auth)):
     """
 
     ## Uncomment the following lines to enable authentication
-    username = claims.get('cognito:username')
-    logger.info(f"Authenticated user: {username}")
+    username = claims.get('cognito:username') if request.user_table else None
     query = request.query
     results_to_return = request.results_to_return
     try:
         start_time = time.time()        
-        top_results = vector_query(query, results_to_return)
+        top_results = vector_query(query, results_to_return, username)
         end_time = time.time()
         time_elapsed = round(end_time - start_time, 2)
         results = []
@@ -90,6 +78,7 @@ def search(request: SearchRequest, claims: dict = Depends(get_auth)):
                 "Tags": metadata.get("Tags", "unknown"),
                 "Filename": metadata.get("Filename", "unknown"),
                 "embedding_text": metadata.get("text", "unknown"),
+                "DocumentID": doc_id if doc_id else "unknown",
                 "similarity_score": round(result['score'], 2)
             }
             results.append(result_data)

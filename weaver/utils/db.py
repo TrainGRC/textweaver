@@ -12,11 +12,14 @@ def batch_insert_into_pinecone(file_key, username, records):
                 error_file.write(f"{file_key}\n")
         logger.error(f"An error occurred while batch inserting: {e}")
 
-def vector_query(query, results_to_return):
+def vector_query(query, results_to_return, username=None):
     try:
         instruction = "Represent the cybersecurity content:"
         query_vector = model.encode([[instruction, query]])[0].tolist()
-        top_results = idx.query(query_vector, top_k=results_to_return, include_metadata=True)
+        if username is not None:
+            top_results = idx.query(query_vector, top_k=results_to_return, include_metadata=True, namespace=username)
+        else:
+            top_results = idx.query(query_vector, top_k=results_to_return, include_metadata=True)
         return top_results
     except Exception as e:
         logger.info(f"An error occurred while querying the database: {e}")
