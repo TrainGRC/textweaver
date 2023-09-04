@@ -113,6 +113,22 @@ model = INSTRUCTOR(f"{os.getenv('MODEL_PATH')}")
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 ##############################################################################################
+###                                  DB Connection Configuration                           ###                    
+##############################################################################################
+
+# Pinecone connection parameters
+PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY')
+PINECONE_ENV = os.environ.get('PINECONE_ENVIRONMENT')
+pinecone.init(
+    api_key=PINECONE_API_KEY,
+    environment=PINECONE_ENV
+)
+try:
+    idx = pinecone.Index(os.getenv('PINECONE_INDEX_NAME'))
+except Exception as e:
+    logger.error(f"Error connecting to Pinecone: {e}")
+    sys.exit(1)
+##############################################################################################
 ###                                  Whisper AI Configuration                              ###
 ##############################################################################################
 
@@ -148,17 +164,3 @@ def install_ffmpeg():
 # Call the function at startup to ensure ffmpeg is installed
 install_ffmpeg()
 whisper_model = whisper.load_model("base")
-
-##############################################################################################
-###                                  DB Connection Configuration                           ###                    
-##############################################################################################
-
-# Pinecone connection parameters
-PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY')
-PINECONE_ENV = os.environ.get('PINECONE_ENVIRONMENT')
-pinecone.init(
-    api_key=PINECONE_API_KEY,
-    environment=PINECONE_ENV
-)
-
-idx = pinecone.Index("stinkbait")
