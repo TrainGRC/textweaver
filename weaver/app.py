@@ -56,6 +56,10 @@ def start_app():
 app.include_router(search.router)
 app.include_router(upload.router)
 
+@app.on_event("startup")
+def startup_event():
+    publish_sns_notification("Stinkbait server has started.", "Stinkbait Startup")
+
 @app.on_event("shutdown")
 def shutdown_event():
     publish_sns_notification("Stinkbait server has shut down.", "Stinkbait Shutdown")
