@@ -84,13 +84,24 @@ class PDFProcessor(FileProcessor):
         except textract_client.exceptions.UnsupportedDocumentException as error:
             # If the PDF is not valid, convert the pages into images and process them as images
             images = convert_from_path(temp_file.name)
+            image_files = []  # List to keep track of image files
             for i, image in enumerate(images):
-                image.save(f'output{i}.jpg', 'JPEG')
-                with open(f'output{i}.jpg', 'rb') as image_file:
-                    response = textract_client.detect_document_text(Document={'Bytes': image_file.read()})
-                    for item in response["Blocks"]:
-                        if item["BlockType"] == "LINE":
-                            text_content += item["Text"] + "\n\n"
+                image_filename = f'{file.filename}_{i}.jpg'
+                image.save(image_filename, 'JPEG')
+                image_files.append(image_filename)  # Add the image file to the list
+                try:
+                    with open(image_filename, 'rb') as image_file:
+                        response = textract_client.detect_document_text(Document={'Bytes': image_file.read()})
+                        for item in response["Blocks"]:
+                            if item["BlockType"] == "LINE":
+                                text_content += item["Text"] + "\n\n"
+                except Exception as error:
+                    logger.error(f"Error processing image file: {error}")
+                    raise HTTPException(status_code=500, detail="Error processing image file")
+            # Delete all image files
+                finally:
+                    for image_file in image_files:
+                        os.remove(image_file)
         except botocore.exceptions.ParamValidationError as error:
             logger.error(f"Parameter validation error: {error}")
             raise HTTPException(status_code=400, detail="Invalid parameters provided")
