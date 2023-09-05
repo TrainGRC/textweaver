@@ -206,9 +206,6 @@ async def process_pdf(username, file: UploadFile, file_type: FileType):
             except Exception as error:
                 logger.error(f"Unexpected error: {error}")
                 raise HTTPException(status_code=500, detail="Unexpected error processing PDF file")
-            except Exception as error:
-                logger.error(f"Unexpected error: {error}")
-                raise HTTPException(status_code=500, detail="Unexpected error processing PDF file")
 
         # Extract the text from the Textract response
         text_content = ""

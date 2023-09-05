@@ -45,6 +45,7 @@ setup(
         'python-jose',
         'pinecone-client',
         'python-dotenv',
+        'pdf2image',
     ],
     entry_points={
         'console_scripts': [

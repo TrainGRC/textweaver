@@ -1,7 +1,6 @@
-from psycopg2 import pool
 import os
-import getpass
 import subprocess
+import platform
 import sys
 import logging
 import pinecone
@@ -147,6 +146,7 @@ try:
 except Exception as e:
     logger.error(f"Error connecting to Pinecone: {e}")
     sys.exit(1)
+
 ##############################################################################################
 ###                                  Whisper AI Configuration                              ###
 ##############################################################################################
@@ -174,7 +174,10 @@ def install_ffmpeg():
         except FileNotFoundError:
             try:
                 subprocess.run(["yum", "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                subprocess.run(["sudo", "yum", "install", "ffmpeg"], check=True)
+                if os.geteuid() == 0:
+                    subprocess.run(["yum", "install", "ffmpeg"], check=True)
+                else:
+                    subprocess.run(["sudo", "yum", "install", "ffmpeg"], check=True)
                 logger.info("ffmpeg installed successfully using yum.")
             except FileNotFoundError:
                 logger.error("Could not determine package manager. Please install ffmpeg manually.")
@@ -183,3 +186,70 @@ def install_ffmpeg():
 # Call the function at startup to ensure ffmpeg is installed
 install_ffmpeg()
 whisper_model = whisper.load_model("base")
+
+##############################################################################################
+###                                 Poppler Configuration                                  ###
+##############################################################################################
+def is_poppler_installed():
+    try:
+        result = subprocess.run(["pdftoppm", "-v"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode == 0:
+            return True
+        else:
+            return False
+    except FileNotFoundError:
+        return False
+
+def install_poppler():
+    os_type = platform.system()
+    
+    if os_type == "Darwin":  # macOS
+        logger.info("Installing Poppler on macOS...")
+        try:
+            subprocess.run(["brew", "install", "poppler"], check=True)
+        except subprocess.CalledProcessError:
+            logger.info("Failed to install Poppler. Do you have Homebrew installed?")
+            return False
+
+    elif os_type == "Linux":
+        logger.info("Installing Poppler on Linux...")
+        # Detect package manager (apt, dnf, or zypper)
+        try:
+            subprocess.run(["apt-get", "-v"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if os.geteuid() == 0:
+                subprocess.run(["apt-get", "update"], check=True)
+                subprocess.run(["apt-get", "install", "poppler-utils"], check=True)
+            else:
+                subprocess.run(["sudo", "apt-get", "update"], check=True)
+                subprocess.run(["sudo", "apt-get", "install", "poppler-utils"], check=True)
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            try:
+                subprocess.run(["dnf", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if os.geteuid() == 0:
+                    subprocess.run(["dnf", "install", "poppler-utils"], check=True)
+                else:
+                    subprocess.run(["sudo", "dnf", "install", "poppler-utils"], check=True)
+            except (FileNotFoundError, subprocess.CalledProcessError):
+                try:
+                    subprocess.run(["zypper", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    if os.geteuid() == 0:
+                        subprocess.run(["zypper", "install", "poppler-tools"], check=True)
+                    else:
+                        subprocess.run(["sudo", "zypper", "install", "poppler-tools"], check=True)
+                except (FileNotFoundError, subprocess.CalledProcessError):
+                    logger.info("Failed to detect a supported package manager (apt, dnf, zypper).")
+                    return False
+    else:
+        logger.info("Unsupported operating system.")
+        return False
+    
+    return True
+
+# Run the functions directly upon import
+if not is_poppler_installed():
+    if install_poppler():
+        logger.info("Poppler has been successfully installed.")
+    else:
+        logger.info("Failed to install Poppler.")
+else:
+    logger.info("Poppler is already installed. No action needed.")
