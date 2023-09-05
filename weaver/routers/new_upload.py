@@ -98,10 +98,11 @@ class PDFProcessor(FileProcessor):
                 except Exception as error:
                     logger.error(f"Error processing image file: {error}")
                     raise HTTPException(status_code=500, detail="Error processing image file")
-            # Delete all image files
                 finally:
-                    for image_file in image_files:
-                        os.remove(image_file)
+                    # Delete the image file
+                    os.remove(image_filename)
+            # Delete the temporary PDF file
+            os.remove(temp_file.name)
         except botocore.exceptions.ParamValidationError as error:
             logger.error(f"Parameter validation error: {error}")
             raise HTTPException(status_code=400, detail="Invalid parameters provided")
@@ -111,6 +112,7 @@ class PDFProcessor(FileProcessor):
         except Exception as error:
             logger.error(f"Unexpected error: {error}")
             raise HTTPException(status_code=500, detail="Unexpected error processing PDF file")
+        logger.info(f"Text content: {text_content}")
         process_file(username, {'Body': text_content}, file.filename, file_type)
         return {"success": "PDF processed successfully"}
 
