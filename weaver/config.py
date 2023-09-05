@@ -58,8 +58,27 @@ try:
 except Exception as e:
     logger.error(f"Error loading environment variables: {e}")
 if env_file is False:
-    logger.error("Environment file not found. Please create a .env file in the current working directory.")
-    sys.exit(1)
+    logger.error("Environment file not found. Checking if environment variables are already loaded.")
+    required_env_vars = [
+        'HOST_IP',
+        'PORT',
+        'AWS_ACCESS_KEY_ID',
+        'AWS_SECRET_ACCESS_KEY',
+        'AWS_DEFAULT_REGION',
+        'AWS_COGNITO_REGION',
+        'AWS_USER_POOL_ID',
+        'AWS_USER_POOL_CLIENT_ID',
+        'SNS_TOPIC_NAME',
+        'PINECONE_API_KEY',
+        'PINECONE_ENVIRONMENT',
+        'PINECONE_INDEX_NAME',
+        'MODEL_PATH'
+    ]
+    missing_env_vars = [var for var in required_env_vars if os.getenv(var) is None]
+    if missing_env_vars:
+        logger.error(f"Missing environment variables: {', '.join(missing_env_vars)}. Please set them or create a .env file in the current working directory.")
+        sys.exit(1)
+
 ##############################################################################################
 ###                                     AWS Configuration                                  ###
 ##############################################################################################
