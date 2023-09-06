@@ -71,6 +71,7 @@ if env_file is False:
         'PINECONE_API_KEY',
         'PINECONE_ENVIRONMENT',
         'PINECONE_INDEX_NAME',
+        'PINECONE_USER_INDEX_NAME',
         'MODEL_PATH'
     ]
     missing_env_vars = [var for var in required_env_vars if os.getenv(var) is None]
@@ -147,6 +148,11 @@ except Exception as e:
     logger.error(f"Error connecting to Pinecone: {e}")
     sys.exit(1)
 
+try:
+    user_idx = pinecone.Index(os.getenv('PINECONE_USER_INDEX_NAME'))
+except Exception as e:
+    logger.error(f"Error connecting to Pinecone: {e}")
+    sys.exit(1)
 ##############################################################################################
 ###                                  Whisper AI Configuration                              ###
 ##############################################################################################
@@ -175,9 +181,9 @@ def install_ffmpeg():
             try:
                 subprocess.run(["yum", "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 if os.geteuid() == 0:
-                    subprocess.run(["yum", "install", "ffmpeg"], check=True)
+                    subprocess.run(["yum", "install", "ffmpeg", "-y"], check=True)
                 else:
-                    subprocess.run(["sudo", "yum", "install", "ffmpeg"], check=True)
+                    subprocess.run(["sudo", "yum", "install", "ffmpeg", "-y"], check=True)
                 logger.info("ffmpeg installed successfully using yum.")
             except FileNotFoundError:
                 logger.error("Could not determine package manager. Please install ffmpeg manually.")
@@ -217,25 +223,25 @@ def install_poppler():
         try:
             subprocess.run(["apt-get", "-v"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             if os.geteuid() == 0:
-                subprocess.run(["apt-get", "update"], check=True)
-                subprocess.run(["apt-get", "install", "poppler-utils"], check=True)
+                subprocess.run(["apt-get", "update", "-y"], check=True)
+                subprocess.run(["apt-get", "install", "poppler-utils", "-y"], check=True)
             else:
-                subprocess.run(["sudo", "apt-get", "update"], check=True)
-                subprocess.run(["sudo", "apt-get", "install", "poppler-utils"], check=True)
+                subprocess.run(["sudo", "apt-get", "update", "-y"], check=True)
+                subprocess.run(["sudo", "apt-get", "install", "poppler-utils", "-y"], check=True)
         except (FileNotFoundError, subprocess.CalledProcessError):
             try:
                 subprocess.run(["dnf", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 if os.geteuid() == 0:
-                    subprocess.run(["dnf", "install", "poppler-utils"], check=True)
+                    subprocess.run(["dnf", "install", "poppler-utils", "-y"], check=True)
                 else:
-                    subprocess.run(["sudo", "dnf", "install", "poppler-utils"], check=True)
+                    subprocess.run(["sudo", "dnf", "install", "poppler-utils", "-y"], check=True)
             except (FileNotFoundError, subprocess.CalledProcessError):
                 try:
                     subprocess.run(["zypper", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     if os.geteuid() == 0:
-                        subprocess.run(["zypper", "install", "poppler-tools"], check=True)
+                        subprocess.run(["zypper", "install", "poppler-tools", "-y"], check=True)
                     else:
-                        subprocess.run(["sudo", "zypper", "install", "poppler-tools"], check=True)
+                        subprocess.run(["sudo", "zypper", "install", "poppler-tools", "-y"], check=True)
                 except (FileNotFoundError, subprocess.CalledProcessError):
                     logger.info("Failed to detect a supported package manager (apt, dnf, zypper).")
                     return False
@@ -284,25 +290,25 @@ def install_libmagic():
         try:
             subprocess.run(["apt-get", "-v"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             if os.geteuid() == 0:
-                subprocess.run(["apt-get", "update"], check=True)
-                subprocess.run(["apt-get", "install", "libmagic1"], check=True)
+                subprocess.run(["apt-get", "update", "-y"], check=True)
+                subprocess.run(["apt-get", "install", "libmagic1", "-y"], check=True)
             else:
-                subprocess.run(["sudo", "apt-get", "update"], check=True)
-                subprocess.run(["sudo", "apt-get", "install", "libmagic1"], check=True)
+                subprocess.run(["sudo", "apt-get", "update", "-y"], check=True)
+                subprocess.run(["sudo", "apt-get", "install", "libmagic1", "-y"], check=True)
         except (FileNotFoundError, subprocess.CalledProcessError):
             try:
                 subprocess.run(["dnf", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 if os.geteuid() == 0:
-                    subprocess.run(["dnf", "install", "file-libs"], check=True)
+                    subprocess.run(["dnf", "install", "file-libs", "-y"], check=True)
                 else:
-                    subprocess.run(["sudo", "dnf", "install", "file-libs"], check=True)
+                    subprocess.run(["sudo", "dnf", "install", "file-libs", "-y"], check=True)
             except (FileNotFoundError, subprocess.CalledProcessError):
                 try:
                     subprocess.run(["zypper", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     if os.geteuid() == 0:
-                        subprocess.run(["zypper", "install", "file"], check=True)
+                        subprocess.run(["zypper", "install", "file", "-y"], check=True)
                     else:
-                        subprocess.run(["sudo", "zypper", "install", "file"], check=True)
+                        subprocess.run(["sudo", "zypper", "install", "file", "-y"], check=True)
                 except (FileNotFoundError, subprocess.CalledProcessError):
                     logger.info("Failed to detect a supported package manager (apt, dnf, zypper).")
                     return False

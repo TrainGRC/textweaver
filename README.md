@@ -10,6 +10,11 @@ TextWeaver is a FastAPI-based web server designed for working with Large Languag
 - **User-Friendly Configuration**: Get started quickly with intuitive configuration options.
 
 ## Installation
+Please note that TextWeaver requires the use of Amazon Cognito for authentication. You can find more information on how to set up Cognito [here](https://docs.aws.amazon.com/cognito/latest/developerguide/). Once you have Cognito set up, you can pass the required id tokens to the server using the `Authorization` header.
+
+Please note that TextWeaver requires the use of SNS for sending errors and server events. You can find more information on how to set up SNS [here](https://docs.aws.amazon.com/sns/latest/dg/sns-getting-started.html). Once you have SNS set up, you will need to create a topic and pass the required topic name to the server using the `.env` file.
+
+Please note that TextWeaver requires the use of Pinecone for storing and querying against embeddings. You can find more information on how to set up Pinecone [here](https://www.pinecone.io/docs/). Once you have Pinecone set up, you will need to create two indexes: one for the embeddings and one for the user embeddings. You can then pass the required API key and index names to the server using the `.env` file.
 
 To install TextWeaver, you need to have a .env file in the root directory of your project. This file should contain the following variables:
 ```bash
@@ -25,9 +30,9 @@ SNS_TOPIC_NAME="" # The name of the SNS topic to errors and server events to
 PINECONE_API_KEY="" # The API key for the Pinecone environment
 PINECONE_ENVIRONMENT="" # The name of the Pinecone environment
 PINECONE_INDEX_NAME="" # The name of the Pinecone index
+PINECONE_USER_INDEX_NAME="" # The name of the Pinecone user index
 MODEL_PATH="" # Where the model path is the appropriate path for the sentence_transformer model hosted on HuggingFace
 ```
-Please note that TextWeaver requires the use of Amazon Cognito for authentication. You can find more information on how to set up Cognito [here](https://docs.aws.amazon.com/cognito/latest/developerguide/). Once you have Cognito set up, you can pass the required id tokens to the server using the `Authorization` header.
 
 Install TextWeaver directly from PyPI using the following command:
 ```bash

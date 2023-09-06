@@ -55,7 +55,7 @@ class VideoProcessor(FileProcessor):
         temp_audio_file.close()
         temp_audio_upload_file = UploadFile(filename=file.filename, file=open(temp_audio_file.name, 'rb'))
         audio_processor = AudioProcessor()
-        result = await audio_processor.process(username, temp_audio_upload_file, file_type)
+        result = await audio_processor.process(username, temp_audio_upload_file, file.filename, file_type)
         return {"success": "Text processed successfully"}
 
 class ImageProcessor(FileProcessor):
@@ -82,7 +82,6 @@ class ImageProcessor(FileProcessor):
         
         # Process the extracted text
         process_file(username, {'Body': text_content}, file.filename, file_type)
-        
         return {"success": "Image processed successfully"}
 
 class PDFProcessor(FileProcessor):
@@ -142,7 +141,7 @@ class TextProcessor(FileProcessor):
         if mime_type != 'text/plain':
             raise HTTPException(status_code=400, detail="Invalid file type. Please upload a valid text file.")
         file_key = file.filename
-        process_file(username, {'Body': text_content}, file_key, file_type)
+        process_file(username, {'Body': text_content}, file.filename, file_type)
         return {"success": "Text processed successfully"}
 
 class FileProcessorFactory:

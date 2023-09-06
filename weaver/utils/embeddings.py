@@ -57,8 +57,6 @@ def prepare_record_for_upsert(file_key, header, chunk_no, embeddings, embeddings
         return (doc_id, embeddings_list, metadata)
 
     except Exception as e:
-        with open("errors.txt", "a+") as error_file:  # Open "errors.txt" in append mode
-            error_file.write(f"{file_key}\n")
         logger.error(f"An error occurred while preparing data for {file_key}: {e}")
         return None
     
@@ -122,7 +120,14 @@ def process_file(username, file_obj, file_key, file_type):
         record = prepare_record_for_upsert(file_key, header, chunk_no, chunk_embedding, chunk_text)
         if record is not None:
             records_to_upsert.append(record)
+    # Check if records_to_upsert is empty or None
+    if not records_to_upsert:
+        logger.error(f"An error occurred while processing the file {file_key}: No records to upsert")
+        return "Error: Problem processing the file. No records to upload."
     # Batch upsert records
-    batch_insert_into_pinecone(file_key, username, records_to_upsert)
-
-    return local_corpus, local_corpus_embeddings
+    try:
+        batch_insert_into_pinecone(file_key, username, records_to_upsert)
+    except Exception as e:
+        logger.error(f"An error occurred while inserting into Pinecone for {file_key}: {e}")
+        return str(e), None
+    return "Success: File processed and records inserted into user search index."
