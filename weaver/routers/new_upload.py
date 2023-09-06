@@ -112,7 +112,6 @@ class PDFProcessor(FileProcessor):
         except Exception as error:
             logger.error(f"Unexpected error: {error}")
             raise HTTPException(status_code=500, detail="Unexpected error processing PDF file")
-        logger.info(f"Text content: {text_content}")
         process_file(username, {'Body': text_content}, file.filename, file_type)
         return {"success": "PDF processed successfully"}
 
