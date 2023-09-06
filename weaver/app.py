@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from uvicorn import run
 import os
-from .routers import search, upload, new_upload
+from .routers import search, upload
 from .version import __version__
 from .config import publish_sns_notification
 
@@ -55,7 +55,6 @@ def start_app():
 
 app.include_router(search.router)
 app.include_router(upload.router)
-app.include_router(new_upload.router)
 
 @app.on_event("startup")
 def startup_event():

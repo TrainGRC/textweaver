@@ -253,3 +253,70 @@ if not is_poppler_installed():
         logger.info("Failed to install Poppler.")
 else:
     logger.info("Poppler is already installed. No action needed.")
+
+##############################################################################################
+###                                Libmagic Configuration                                  ###
+##############################################################################################
+def is_libmagic_installed():
+    try:
+        result = subprocess.run(["file", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode == 0:
+            return True
+        else:
+            return False
+    except FileNotFoundError:
+        return False
+
+def install_libmagic():
+    os_type = platform.system()
+    
+    if os_type == "Darwin":  # macOS
+        logger.info("Installing libmagic on macOS...")
+        try:
+            subprocess.run(["brew", "install", "libmagic"], check=True)
+        except subprocess.CalledProcessError:
+            logger.info("Failed to install libmagic. Do you have Homebrew installed?")
+            return False
+
+    elif os_type == "Linux":
+        logger.info("Installing libmagic on Linux...")
+        # Detect package manager (apt, dnf, or zypper)
+        try:
+            subprocess.run(["apt-get", "-v"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if os.geteuid() == 0:
+                subprocess.run(["apt-get", "update"], check=True)
+                subprocess.run(["apt-get", "install", "libmagic1"], check=True)
+            else:
+                subprocess.run(["sudo", "apt-get", "update"], check=True)
+                subprocess.run(["sudo", "apt-get", "install", "libmagic1"], check=True)
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            try:
+                subprocess.run(["dnf", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if os.geteuid() == 0:
+                    subprocess.run(["dnf", "install", "file-libs"], check=True)
+                else:
+                    subprocess.run(["sudo", "dnf", "install", "file-libs"], check=True)
+            except (FileNotFoundError, subprocess.CalledProcessError):
+                try:
+                    subprocess.run(["zypper", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    if os.geteuid() == 0:
+                        subprocess.run(["zypper", "install", "file"], check=True)
+                    else:
+                        subprocess.run(["sudo", "zypper", "install", "file"], check=True)
+                except (FileNotFoundError, subprocess.CalledProcessError):
+                    logger.info("Failed to detect a supported package manager (apt, dnf, zypper).")
+                    return False
+    else:
+        logger.info("Unsupported operating system.")
+        return False
+    
+    return True
+
+# Run the functions directly upon import
+if not is_libmagic_installed():
+    if install_libmagic():
+        logger.info("libmagic has been successfully installed.")
+    else:
+        logger.info("Failed to install libmagic.")
+else:
+    logger.info("libmagic is already installed. No action needed.")

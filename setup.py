@@ -46,6 +46,7 @@ setup(
         'pinecone-client',
         'python-dotenv',
         'pdf2image',
+        'python-magic',
     ],
     entry_points={
         'console_scripts': [
