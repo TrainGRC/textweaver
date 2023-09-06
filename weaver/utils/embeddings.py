@@ -1,4 +1,4 @@
-import json
+import os
 from ksuid import ksuid
 from datetime import datetime
 import numpy as np
@@ -17,22 +17,18 @@ def prepare_record_for_upsert(file_key, header, chunk_no, embeddings, embeddings
     try:
         # Convert the embeddings to a numpy array
         embeddings_array = np.array(embeddings)
-
         # If the array is 2-D with a single row, flatten it to 1-D
         if embeddings_array.ndim == 2 and embeddings_array.shape[0] == 1:
             embeddings_array = embeddings_array.flatten()
         # Extract and validate metadata
-        base_title = header['links'][0]['Title'] if 'links' in header and 'Title' in header['links'][0] else None
+        base_title = os.path.splitext(file_key)[0]
         title = f"{base_title} Part {chunk_no}"
-        doc_id = header.get('doc_id', None)
-        url = next((value for link_dict in header.get('links', []) for key, value in link_dict.items() if key.lower() == 'link'), None)
+        base_doc_id = header.get('doc_id', None)
+        doc_id = f"{base_doc_id}-{chunk_no}" if base_doc_id else ksuid()
         publication_date_raw = header.get('PublicationDate', None)
         if isinstance(publication_date_raw, list):
             publication_date_raw = publication_date_raw[0]
         publication_date = validate_date(str(publication_date_raw))
-
-        tags = header.get('Tags', None)
-        author = header.get('Authors', None)
 
         # Validate types
         if doc_id is None or not isinstance(embeddings_array.tolist(), list) or not isinstance(title, str):
@@ -45,15 +41,11 @@ def prepare_record_for_upsert(file_key, header, chunk_no, embeddings, embeddings
         metadata = {
             "Title": title if title else "unknown",
             "Filename": file_key if file_key else "unknown",
-            "URL": url if url else "unknown",
-            "PublicationDate": publication_date if publication_date else "unknown",
-            "Tags": tags if tags and any(tags) else "unknown",  # Check for non-empty list
-            "Author": author if author and any(author) else "unknown",  # Check for non-empty list
-            "text": embeddings_text if embeddings_text else "unknown"
+            "PublicationDate": publication_date if publication_date else datetime.now().strftime("%Y-%m-%d"),
+            "text": embeddings_text if embeddings_text else "unknown",
+            "doc_id": base_doc_id if base_doc_id else "unknown"
         }
 
-        # Debugging line
-        #logger.info(f"data to be upserted: {embeddings_text}")
         return (doc_id, embeddings_list, metadata)
 
     except Exception as e:
@@ -89,7 +81,6 @@ def process_file(username, file_obj, file_key, file_type):
         return local_corpus, local_corpus_embeddings
     max_chunk_size = 256  # Adjust as needed
     sentences = sent_tokenize(body_content)
-
     chunks = []
     chunk = []
     num_tokens = 0
@@ -115,7 +106,6 @@ def process_file(username, file_obj, file_key, file_type):
         chunk_no += 1
         chunk_text = ' '.join(chunk)
         chunk_embedding = model.encode([[instruction, chunk_text]])
-
         # Prepare each record for upsert but do not upsert it yet
         record = prepare_record_for_upsert(file_key, header, chunk_no, chunk_embedding, chunk_text)
         if record is not None:

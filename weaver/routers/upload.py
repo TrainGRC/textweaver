@@ -55,7 +55,7 @@ class VideoProcessor(FileProcessor):
         temp_audio_file.close()
         temp_audio_upload_file = UploadFile(filename=file.filename, file=open(temp_audio_file.name, 'rb'))
         audio_processor = AudioProcessor()
-        result = await audio_processor.process(username, temp_audio_upload_file, file.filename, file_type)
+        result = await audio_processor.process(username, temp_audio_upload_file, file_type)
         return {"success": "Text processed successfully"}
 
 class ImageProcessor(FileProcessor):

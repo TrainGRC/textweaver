@@ -18,7 +18,7 @@ class SearchRequest(BaseModel):
     results_to_return: Optional[int] = Field(top_k, description="Number of results to return. Default is 5.")
     user_table: Optional[bool] = Field(False, description="Optional parameter to specify username for the table to search, must be an alphanumeric value or a valid email address.")
     
-@router.post("/search")
+@router.post("/search/")
 def search(request: SearchRequest, claims: dict = Depends(get_auth)):
     """
     Endpoint to perform a search against the embeddings dataset.
@@ -66,21 +66,29 @@ def search(request: SearchRequest, claims: dict = Depends(get_auth)):
         time_elapsed = round(end_time - start_time, 2)
         results = []
         for result in top_results['matches']:
-            doc_id, metadata = result['id'], result['metadata']
+            metadata = result['metadata']
             # Extract the Title and Link or file information from the metadata
             link = metadata.get("URL", [])
+            result_data = {}
 
-            result_data = {
-                "Title": metadata.get("Title", "unknown"),
-                "Link": link,
-                "Published": metadata.get("PublicationDate", "unknown"),
-                "Author": metadata.get("Author", "unknown"),
-                "Tags": metadata.get("Tags", "unknown"),
-                "Filename": metadata.get("Filename", "unknown"),
-                "embedding_text": metadata.get("text", "unknown"),
-                "DocumentID": doc_id if doc_id else "unknown",
-                "similarity_score": round(result['score'], 2)
-            }
+            if metadata.get("Title", "unknown") != "unknown":
+                result_data["Title"] = metadata.get("Title")
+            if link:
+                result_data["Link"] = link
+            if metadata.get("PublicationDate", "unknown") != "unknown":
+                result_data["Published"] = metadata.get("PublicationDate")
+            if metadata.get("Author", "unknown") != "unknown":
+                result_data["Author"] = metadata.get("Author")
+            if metadata.get("Tags", "unknown") != "unknown":
+                result_data["Tags"] = metadata.get("Tags")
+            if metadata.get("Filename", "unknown") != "unknown":
+                result_data["Filename"] = metadata.get("Filename")
+            if metadata.get("text", "unknown") != "unknown":
+                result_data["embedding_text"] = metadata.get("text")
+            if metadata.get("doc_id", "unknown") != "unknown":
+                result_data["DocumentID"] = metadata.get("doc_id")
+            result_data["similarity_score"] = round(result['score'], 2)
+
             results.append(result_data)
 
         response = {
