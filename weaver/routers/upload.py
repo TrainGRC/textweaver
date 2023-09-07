@@ -161,7 +161,7 @@ class FileProcessorFactory:
 
 # In your upload function:
 @router.post("/upload/")
-async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...), file_type: FileType = Form(...), claims: dict = Depends(get_auth) if os.getenv('COGNITO_AUTHENTICATION', 'False').lower() == 'true' else lambda: {}):
+async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...), file_type: FileType = Form(...), claims: dict = Depends(get_auth)):
     username = claims.get('cognito:username')
     processor = FileProcessorFactory().get_processor(file_type)
     await processor.process(username, file, file_type)

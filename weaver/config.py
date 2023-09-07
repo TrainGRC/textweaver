@@ -130,8 +130,10 @@ logger.addHandler(sns_handler)
 ##############################################################################################
 model = INSTRUCTOR(f"{os.getenv('MODEL_PATH')}")
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
 try:
     nltk.download('punkt')
+    logger.info('Punkt dataset downloaded')
 except Exception as e:
     logger.error(f"Error downloading NLTK punkt: {e}")
     sys.exit(1)

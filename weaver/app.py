@@ -51,7 +51,7 @@ app = FastAPI(
 def start_app():
     host_ip = os.getenv("HOST_IP") or input("Enter host IP: ")
     port_num = int(os.getenv("PORT") or input("Enter port number: "))
-    run(app, host=host_ip, port=port_num, loop=loop)
+    run(app, host=host_ip, port=port_num, loop=loop, limit_max_request_body=600*1024*1024)  # Set max request body size to 600 MB for uvicorn
 
 app.include_router(search.router)
 app.include_router(upload.router)
