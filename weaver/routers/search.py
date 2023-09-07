@@ -19,7 +19,7 @@ class SearchRequest(BaseModel):
     user_table: Optional[bool] = Field(False, description="Optional parameter to specify username for the table to search, must be an alphanumeric value or a valid email address.")
     
 @router.post("/search/")
-def search(request: SearchRequest, claims: dict = Depends(get_auth)):
+def search(request: SearchRequest, claims: dict = Depends(get_auth) if os.getenv('COGNITO_AUTHENTICATION', 'False').lower() == 'true' else lambda: {}):
     """
     Endpoint to perform a search against the embeddings dataset.
 

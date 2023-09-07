@@ -17,16 +17,16 @@ Textweaver helps you search your files and a treasure trove of cybersecurity inf
 ## Search
 
 You can **search** for information in the database:
-- leave the user_table parameter off to search our text corpus.
-- add the user_table parameter to search your own data.
+- leave the user_table parameter "false" to search our text corpus. "true" to search your own files.
 
 ## Upload
 
 You can **upload** your own files to a private database:
-- text files
-- pdf files
-- audio files
-- video files
+- text (.txt) files
+- pdf (.pdf) files
+- audio (.mp3) files
+- video (.mp4) files
+- image (.jpg /.jpeg /.png / .tiff) files containing text
 """
 
 app = FastAPI(    
@@ -35,13 +35,13 @@ app = FastAPI(
     description=description,
     version=__version__,
     contact={
-        "name": "Train GRC Inc.",
-        "url": "http://www.traingrc.com/",
+        "name": "Stinkbait",
+        "url": "http://www.stinkbait.io/",
         "email": "support@traingrc.com",
     },
     license_info={
-        "name": "Apache 2.0",
-        "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
+        "name": "MIT License",
+        "url": "https://choosealicense.com/licenses/mit/",
     },
     docs_url="/documentation",
     redoc_url="/redocumentation",
