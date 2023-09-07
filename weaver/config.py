@@ -6,9 +6,9 @@ import logging
 import pinecone
 import whisper
 import boto3
+import nltk
 from botocore.exceptions import ClientError
 from typing import Optional
-from nltk.tokenize import sent_tokenize
 from transformers import BertTokenizer
 from InstructorEmbedding import INSTRUCTOR
 from termcolor import colored
@@ -130,7 +130,11 @@ logger.addHandler(sns_handler)
 ##############################################################################################
 model = INSTRUCTOR(f"{os.getenv('MODEL_PATH')}")
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-
+try:
+    nltk.download('punkt')
+except Exception as e:
+    logger.error(f"Error downloading NLTK punkt: {e}")
+    sys.exit(1)
 ##############################################################################################
 ###                                  DB Connection Configuration                           ###                    
 ##############################################################################################
