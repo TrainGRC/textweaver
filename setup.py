@@ -1,23 +1,33 @@
 from setuptools import setup, find_packages
 
 # Read the contents of the README file
-with open('README.md', encoding='utf-8') as f:
-    long_description = f.read()
+def read_readme():
+    try:
+        with open('README.md', encoding='utf-8') as f:
+            return f.read()
+    except FileNotFoundError:
+        return "A FastAPI-based web server for working with LLMs, embedding models, and Pinecone Vector DB."
 
-with open("weaver/version.py") as file:
-    content = file.read()
-    version = content.strip().split('=')[-1].replace('"', '').strip()
+
+try:
+    with open("weaver/version.py") as file:
+        content = file.read()
+        version = content.strip().split('=')[-1].replace('"', '').strip()
+except Exception as e:
+    version = "unknown"
 
 setup(
     name='textweaver',
     version=version,
     author='Wes Ladd',
     author_email='wesladd@traingrc.com',
-    description='A FastAPI-based web server for working with LLMs, embedding models, and PostgresSQL.',
-    long_description=long_description,
+    keywords='textweaver, NLP, text-processing, machine-learning',
+    description='A FastAPI-based web server for working with LLMs, embedding models, and Pinecone Vector DB.',
+    long_description=read_readme(),
     long_description_content_type='text/markdown',
     url='https://github.com/TrainGRC/textweaver',
     packages=find_packages(),
+    license='MIT',
     include_package_data=True,
     python_requires='>=3.9',  # Requires Python 3.9 or higher
     install_requires=[
@@ -25,7 +35,6 @@ setup(
         'uvicorn',
         'ksuid',
         'numpy',
-        'psycopg2-binary',
         'nltk',
         'transformers',
         'termcolor',
