@@ -11,7 +11,7 @@ def validate_date(date_str: str, format: str = "%Y-%m-%d") -> str:
         datetime.strptime(date_str, format)
         return date_str
     except ValueError:
-        return None
+        return ""
 
 def prepare_record_for_upsert(file_key, header, chunk_no, embeddings, embeddings_text):
     try:
@@ -68,7 +68,7 @@ def process_file(username, file_obj, file_key, file_type):
         - It also handles UnicodeDecodeErrors and prints error messages for corrupted files.
     """
     logger.info(f"Started Processing: {file_key}")
-    instruction = "Represent the cybersecurity content:"
+    instruction = "passage:"
     doc_id = str(ksuid())
     local_corpus = []
     local_corpus_embeddings = []
@@ -105,7 +105,7 @@ def process_file(username, file_obj, file_key, file_type):
     for chunk in chunks:
         chunk_no += 1
         chunk_text = ' '.join(chunk)
-        chunk_embedding = model.encode([[instruction, chunk_text]])
+        chunk_embedding = model.encode([f"{instruction} {chunk_text}"])
         # Prepare each record for upsert but do not upsert it yet
         record = prepare_record_for_upsert(file_key, header, chunk_no, chunk_embedding, chunk_text)
         if record is not None:

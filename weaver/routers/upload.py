@@ -122,12 +122,6 @@ class PDFProcessor(FileProcessor):
                     os.remove(image_filename)
             # Delete the temporary PDF file
             os.remove(temp_file.name)
-        except botocore.exceptions.ParamValidationError as error:
-            logger.error(f"Parameter validation error: {error}")
-            raise HTTPException(status_code=400, detail="Invalid parameters provided")
-        except botocore.exceptions.ClientError as error:
-            logger.error(f"Client error with Textract: {error}")
-            raise HTTPException(status_code=500, detail="Error processing PDF file")
         except Exception as error:
             logger.error(f"Unexpected error: {error}")
             raise HTTPException(status_code=500, detail="Unexpected error processing PDF file")

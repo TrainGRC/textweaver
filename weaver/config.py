@@ -52,6 +52,7 @@ logger.addHandler(console_handler)
 ###                          Environment Variables Configuration                           ###
 ##############################################################################################
 # Load environment variables from .env file
+env_file = False
 try:
     env_file=load_dotenv('.env')
 except Exception as e:

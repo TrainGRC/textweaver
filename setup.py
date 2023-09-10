@@ -30,15 +30,17 @@ setup(
     license='MIT',
     include_package_data=True,
     python_requires='>=3.9',  # Requires Python 3.9 or higher
+    test_suite="tests",
     install_requires=[
         'fastapi',
         'uvicorn',
+        'gunicorn',
         'ksuid',
+        'pydantic',
         'numpy',
         'nltk',
         'transformers',
         'termcolor',
-        'pydantic',
         'InstructorEmbedding',
         'sentence-transformers',
         'python-multipart',
@@ -48,7 +50,6 @@ setup(
         'PyPDF2',
         'uvloop',
         'boto3',
-        'email-validator',
         'pydub',
         'jwt',
         'python-jose',
@@ -60,6 +61,7 @@ setup(
     entry_points={
         'console_scripts': [
             'textweaver=weaver.app:start_app',
+            'textweaver-gunicorn=weaver.app:app',
         ],
     },
     classifiers=[

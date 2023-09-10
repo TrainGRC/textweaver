@@ -63,6 +63,3 @@ def startup_event():
 @app.on_event("shutdown")
 def shutdown_event():
     publish_sns_notification("Stinkbait server has shut down.", "Stinkbait Shutdown")
-
-if __name__ == "__main__":
-    start_app()

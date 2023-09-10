@@ -15,8 +15,9 @@ def batch_insert_into_pinecone(file_key, username, records):
 
 def vector_query(query, results_to_return, username=None):
     try:
-        instruction = "Represent the cybersecurity content:"
-        query_vector = model.encode([[instruction, query]])[0].tolist()
+        instruction = "query:"
+        query_string = f"{instruction} {query}"
+        query_vector = model.encode([query_string])[0].tolist()
         if username is not None:
             top_results = user_idx.query(query_vector, top_k=results_to_return, include_metadata=True, namespace=username)
             logger.info(f"Queried User Index for {username}")
