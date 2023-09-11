@@ -50,9 +50,7 @@ app = FastAPI(
 )
 
 origins = [
-    "http://localhost",
-    "https://stinkbait.io",
-    "https://www.stinkbait.io",
+    "*"
 ]
 
 app.add_middleware(
