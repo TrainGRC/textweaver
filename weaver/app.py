@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from uvicorn import run
 import os
 from .routers import search, upload
@@ -46,6 +47,20 @@ app = FastAPI(
     docs_url="/documentation",
     redoc_url="/redocumentation",
     openapi_tags=None
+)
+
+origins = [
+    "http://localhost",
+    "https://stinkbait.io",
+    "https://www.stinkbait.io",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 def start_app():
