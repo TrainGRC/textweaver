@@ -10,7 +10,7 @@ import nltk
 from botocore.exceptions import ClientError
 from typing import Optional
 from transformers import BertTokenizer
-from InstructorEmbedding import INSTRUCTOR
+from sentence_transformers import SentenceTransformer
 from termcolor import colored
 from dotenv import load_dotenv
 
@@ -129,7 +129,7 @@ logger.addHandler(sns_handler)
 ##############################################################################################
 ##                            Embedding Model and Tokenizer                                 ##
 ##############################################################################################
-model = INSTRUCTOR(f"{os.getenv('MODEL_PATH')}")
+model = SentenceTransformer(f"{os.getenv('MODEL_PATH')}")
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 try:

@@ -41,7 +41,6 @@ setup(
         'nltk',
         'transformers',
         'termcolor',
-        'InstructorEmbedding',
         'sentence-transformers',
         'python-multipart',
         'whisper-ai',

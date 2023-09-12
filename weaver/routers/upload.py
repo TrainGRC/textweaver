@@ -158,4 +158,5 @@ class FileProcessorFactory:
 async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...), file_type: FileType = Form(...), claims: dict = Depends(get_auth)):
     username = claims.get('cognito:username')
     processor = FileProcessorFactory().get_processor(file_type)
-    await processor.process(username, file, file_type)
+    result = await processor.process(username, file, file_type)
+    return result
