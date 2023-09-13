@@ -47,7 +47,6 @@ def prepare_record_for_upsert(file_key, header, chunk_no, embeddings, embeddings
         }
 
         return (doc_id, embeddings_list, metadata)
-
     except Exception as e:
         logger.error(f"An error occurred while preparing data for {file_key}: {e}")
         return None

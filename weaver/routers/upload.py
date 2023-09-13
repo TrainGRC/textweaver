@@ -64,7 +64,7 @@ class VideoProcessor(FileProcessor):
         return {"success": "Video processing started"}
 
 class ImageProcessor(FileProcessor):
-    async def process(self, username, file: UploadFile, file_type: FileType):
+    async def process(self, background_tasks: BackgroundTasks, username, file: UploadFile, file_type: FileType):
         # Validate file format
         assert file.filename.endswith(('.jpg', '.png', '.tiff')), "Invalid file format. Please upload a JPG, PNG, or TIFF file."
         
@@ -90,7 +90,7 @@ class ImageProcessor(FileProcessor):
         return {"success": "Image processed successfully"}
 
 class PDFProcessor(FileProcessor):
-    async def process(self, username, file: UploadFile, file_type: FileType):
+    async def process(self, background_tasks: BackgroundTasks, username, file: UploadFile, file_type: FileType):
         temp_file = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
         content = await file.read()
         temp_file.write(content)
@@ -134,7 +134,7 @@ class PDFProcessor(FileProcessor):
         return {"success": "PDF processed successfully"}
 
 class TextProcessor(FileProcessor):
-    async def process(self, username, file: UploadFile, file_type: FileType):
+    async def process(self, background_tasks: BackgroundTasks, username, file: UploadFile, file_type: FileType):
         text_content = (await file.read()).decode()
         mime_type = magic.from_buffer(text_content, mime=True)
         if mime_type != 'text/plain':
