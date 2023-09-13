@@ -26,7 +26,7 @@ class FileProcessor(ABC):
         pass
 
 class AudioProcessor(FileProcessor):
-    async def process(self, username, file: UploadFile, file_type: FileType):
+    async def process(self, background_tasks: BackgroundTasks, username, file: UploadFile, file_type: FileType):
         temp_file = tempfile.NamedTemporaryFile(delete=False)
         content = file.file.read()
         temp_file.write(content)
@@ -34,13 +34,18 @@ class AudioProcessor(FileProcessor):
         mime_type = magic.from_file(temp_file.name, mime=True)
         if mime_type != 'audio/mpeg':
             raise HTTPException(status_code=400, detail="Invalid file type. Please upload a valid audio file.")
-        result = whisper_model.transcribe(temp_file.name)
+        
+        # Add the transcription and file processing to background tasks
+        background_tasks.add_task(self.transcribe_and_process, username, temp_file.name, file.filename, file_type)
+        return {"success": "Audio processing started"}
+
+    async def transcribe_and_process(self, username, file_path, filename, file_type):
+        result = whisper_model.transcribe(file_path)
         transcription_text = result['text']
-        process_file(username, {'Body': transcription_text}, file.filename, file_type)
-        return {"success": "Text processed successfully"}
+        process_file(username, {'Body': transcription_text}, filename, file_type)
 
 class VideoProcessor(FileProcessor):
-    async def process(self, username, file: UploadFile, file_type: FileType):
+    async def process(self, background_tasks: BackgroundTasks, username, file: UploadFile, file_type: FileType):
         temp_video_file = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
         content = file.file.read()
         temp_video_file.write(content)
@@ -55,8 +60,8 @@ class VideoProcessor(FileProcessor):
         temp_audio_file.close()
         temp_audio_upload_file = UploadFile(filename=file.filename, file=open(temp_audio_file.name, 'rb'))
         audio_processor = AudioProcessor()
-        result = await audio_processor.process(username, temp_audio_upload_file, file_type)
-        return {"success": "Text processed successfully"}
+        await audio_processor.process(background_tasks, username, temp_audio_upload_file, file_type)
+        return {"success": "Video processing started"}
 
 class ImageProcessor(FileProcessor):
     async def process(self, username, file: UploadFile, file_type: FileType):
@@ -158,5 +163,5 @@ class FileProcessorFactory:
 async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...), file_type: FileType = Form(...), claims: dict = Depends(get_auth)):
     username = claims.get('cognito:username')
     processor = FileProcessorFactory().get_processor(file_type)
-    result = await processor.process(username, file, file_type)
+    result = await processor.process(background_tasks, username, file, file_type)
     return result
