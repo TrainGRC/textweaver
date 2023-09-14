@@ -69,6 +69,10 @@ def start_app():
 app.include_router(search.router)
 app.include_router(upload.router)
 
+@app.get("/health")
+def read_health():
+    return {"status": "healthy"}
+
 @app.on_event("startup")
 def startup_event():
     publish_sns_notification("Stinkbait server has started.", "Stinkbait Startup")
