@@ -13,27 +13,20 @@ router = APIRouter()
 # Define the model and the tokenizer
 top_k = 5  # Default value; adjust as needed
 
-class SearchRequest(BaseModel):
-    query: str = Field(..., description="The search query string.")
-    results_to_return: Optional[int] = Field(top_k, description="Number of results to return. Default is 5.")
-    user_table: Optional[bool] = Field(False, description="Optional parameter to specify username for the table to search, must be an alphanumeric value or a valid email address.")
-    
-@router.post("/search/")
-def search(request: SearchRequest, claims: dict = Depends(get_auth)):
+@router.get("/search/")
+def search(query: str, results_to_return: Optional[int] = top_k, user_table: Optional[bool] = False, claims: dict = Depends(get_auth)):
     """
     Endpoint to perform a search against the embeddings dataset.
 
     Takes a JSON object containing the search query and the number of results to return.
 
     Parameters:
-        request (SearchRequest): JSON object containing 'query' (str), optional 'results_to_return' (int), and optional 'user_table' (bool).
-                                 Example: {"query": "what is malware", "results_to_return": 10}
+        query (str): The search query string.
+        results_to_return (int, optional): Number of results to return. Default is 5.
+        user_table (bool, optional): Optional parameter to specify username for the table to search, must be an alphanumeric value or a valid email address.
 
     Curl example:
-        curl 'http://127.0.0.1:8000/search' \
-             -X 'POST' \
-             -H 'Content-Type: application/json' \
-             --data '{"query": "string", "results_to_return": 5, "search_type": "euclidean", "probes": 100}'
+        curl 'http://127.0.0.1:8000/search?query=string&results_to_return=5&user_table=false'
 
     Returns:
         dict: A dictionary containing the search results and the time taken to fetch them. 
@@ -56,9 +49,7 @@ def search(request: SearchRequest, claims: dict = Depends(get_auth)):
     """
 
     ## Uncomment the following lines to enable authentication
-    username = claims.get('cognito:username') if request.user_table else None
-    query = request.query
-    results_to_return = request.results_to_return
+    username = claims.get('cognito:username') if user_table else None
     try:
         start_time = time.time()        
         top_results = vector_query(query, results_to_return, username)
@@ -88,7 +79,6 @@ def search(request: SearchRequest, claims: dict = Depends(get_auth)):
             if metadata.get("doc_id", "unknown") != "unknown":
                 result_data["DocumentID"] = metadata.get("doc_id")
             result_data["similarity_score"] = round(result['score'], 2)
-
             results.append(result_data)
 
         response = {
@@ -99,7 +89,7 @@ def search(request: SearchRequest, claims: dict = Depends(get_auth)):
         return response
 
     except Exception as e:
-        # Handle the exception as required
+        logger.error(e)
         return {"error": str(e)}
     finally:
         pass
