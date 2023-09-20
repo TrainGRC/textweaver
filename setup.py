@@ -56,6 +56,7 @@ setup(
         'python-dotenv',
         'pdf2image',
         'python-magic',
+        'httpx',
     ],
     entry_points={
         'console_scripts': [
