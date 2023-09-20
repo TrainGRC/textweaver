@@ -22,22 +22,13 @@ jobs:
         pip install pytest
         pip install -e .  # This installs your package in an editable mode
 
-    - name: Retrieve Cognito User ID Token
+    - name: Test with PyTest
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION: us-east-1
         AWS_DEFAULT_OUTPUT: json
-      run: |
-        aws sts get-caller-identity
-
-    - name: Test with PyTest
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_DEFAULT_REGION: ${{ env.AWS_DEFAULT_REGION }}
         PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
-        AWS_DEFAULT_OUTPUT: json
         AWS_COGNITO_REGION: ${{ env.AWS_COGNITO_REGION }}
         AWS_USER_POOL_CLIENT_ID: ${{ env.AWS_USER_POOL_CLIENT_ID }}
         AWS_USER_POOL_ID: ${{ env.AWS_USER_POOL_ID }}
@@ -49,6 +40,7 @@ jobs:
         PORT: ${{ env.PORT }}
         SNS_TOPIC_NAME: ${{ env.SNS_TOPIC_NAME }}
       run: |
+        aws sts get-caller-identity
         pytest ./tests
 
   deploy:
