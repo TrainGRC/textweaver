@@ -3,7 +3,6 @@ from weaver.app import app
 import os
 import io
 
-
 client = TestClient(app)
 
 def test_upload_endpoint():
