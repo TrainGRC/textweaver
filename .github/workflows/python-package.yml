@@ -22,13 +22,19 @@ jobs:
         pip install pytest
         pip install -e .  # This installs your package in an editable mode
 
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
     - name: Retrieve Cognito User ID Token
       run: |
+        aws sts get-caller-identity
         TOKEN=$(aws cognito-idp admin-initiate-auth --region us-east-1 --user-pool-id us-east-1_6HZihsFMW --client-id 1difj1ec8einmv53fpmmbsu8s1 --auth-flow ADMIN_NO_SRP_AUTH --auth-parameters USERNAME=testuser@example.com,PASSWORD=password --query AuthenticationResult.IdToken --output text)
         echo "BEARER_TOKEN=$TOKEN" >> $GITHUB_ENV
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     - name: Test with PyTest
       run: |
