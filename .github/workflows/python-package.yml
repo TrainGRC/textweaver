@@ -24,8 +24,8 @@ jobs:
 
     - name: Install AWS CLI
       run: |
-        apt-get update -y && apt-get upgrade -y
-        apt install awscli -y
+        sudo apt-get update -y && apt-get upgrade -y
+        sudo apt install awscli -y
 
     - name: Retrieve Cognito User ID Token
       run: |
