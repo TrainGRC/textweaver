@@ -1,4 +1,4 @@
-name: Python package
+name: Update and Package Textweaver
 
 on:
   push:
@@ -7,7 +7,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
