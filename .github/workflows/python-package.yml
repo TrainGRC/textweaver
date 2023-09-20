@@ -22,7 +22,18 @@ jobs:
         pip install pytest
         pip install -e .  # This installs your package in an editable mode
 
-    - name: Test with pytest
+    - name: Install AWS CLI
+      run: |
+        curl "https://d1vvhvl2y92vvt.cloudfront.net/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip awscliv2.zip
+        sudo ./aws/install
+
+    - name: Retrieve Cognito User ID Token
+      run: |
+        TOKEN=$(aws cognito-idp admin-initiate-auth --region us-east-1 --user-pool-id us-east-1_6HZihsFMW --client-id 1difj1ec8einmv53fpmmbsu8s1 --auth-flow ADMIN_NO_SRP_AUTH --auth-parameters USERNAME=testuser@example.com,PASSWORD=password --query AuthenticationResult.IdToken --output text)
+        echo "BEARER_TOKEN=$TOKEN" >> $GITHUB_ENV
+
+    - name: Test with PyTest
       run: |
         pytest ./tests
 
