@@ -161,8 +161,9 @@ class FileProcessorFactory:
 async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...), file_type: str = Form(...), claims: dict = Depends(get_auth)):
     username = claims.get('cognito:username')
     subscription_level = claims.get('custom:subscription')
-    if subscription_level != 'Pro':
-        raise HTTPException(status_code=403, detail="You must have a Pro subscription to upload files.")
+    # Uncomment the following lines to restrict uploads to Pro users
+    # if subscription_level != 'Pro':
+    #     raise HTTPException(status_code=403, detail="You must have a Pro subscription to upload files.")
     try:
         file_type_enum = FileType(file_type)
     except ValueError:

@@ -33,7 +33,7 @@ def test_upload_endpoint_file_type_restriction():
 
 def test_upload_endpoint_file_size_limit():
     # Create a mock file that exceeds the size limit
-    mock_file_content = b"Mock file content" * 100000000000  # Adjust this value as needed
+    mock_file_content = b"Mock file content" * 10000000  # Adjust this value as needed
     mock_file = {"file": ("large_file.txt", mock_file_content)}
 
     response = client.post("/upload/", files=mock_file, headers={"Authorization": f"Bearer {os.getenv('BEARER_TOKEN')}"})
