@@ -119,4 +119,4 @@ def process_file(username, file_obj, file_key, file_type):
     except Exception as e:
         logger.error(f"An error occurred while inserting into Pinecone for {file_key}: {e}")
         return str(e), None
-    return "Success: File processed and records inserted into user search index."
+    return doc_id, file_key

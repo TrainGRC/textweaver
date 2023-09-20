@@ -34,15 +34,13 @@ class AudioProcessor(FileProcessor):
         mime_type = magic.from_file(temp_file.name, mime=True)
         if mime_type != 'audio/mpeg':
             raise HTTPException(status_code=400, detail="Invalid file type. Please upload a valid audio file.")
-        
+        result = whisper_model.transcribe(temp_file.name)
+        transcription_text = result['text']
+        doc_id, original_filename = process_file(username, {'Body': transcription_text}, file.filename, file_type)
         # Add the transcription and file processing to background tasks
         background_tasks.add_task(self.transcribe_and_process, username, temp_file.name, file.filename, file_type)
-        return {"success": "Audio processing started"}
+        return {"success": "Audio processing started", "doc_id": doc_id, "original_filename": original_filename}
 
-    async def transcribe_and_process(self, username, file_path, filename, file_type):
-        result = whisper_model.transcribe(file_path)
-        transcription_text = result['text']
-        process_file(username, {'Body': transcription_text}, filename, file_type)
 
 class VideoProcessor(FileProcessor):
     async def process(self, background_tasks: BackgroundTasks, username, file: UploadFile, file_type: FileType):
@@ -86,8 +84,8 @@ class ImageProcessor(FileProcessor):
                 text_content += item["Text"] + "\n"
         
         # Process the extracted text
-        process_file(username, {'Body': text_content}, file.filename, file_type)
-        return {"success": "Image processed successfully"}
+        doc_id, original_filename = process_file(username, {'Body': text_content}, file.filename, file_type)
+        return {"success": "Image processing complete", "doc_id": doc_id, "original_filename": original_filename}
 
 class PDFProcessor(FileProcessor):
     async def process(self, background_tasks: BackgroundTasks, username, file: UploadFile, file_type: FileType):
@@ -130,8 +128,8 @@ class PDFProcessor(FileProcessor):
         except Exception as error:
             logger.error(f"Unexpected error: {error}")
             raise HTTPException(status_code=500, detail="Unexpected error processing PDF file")
-        process_file(username, {'Body': text_content}, file.filename, file_type)
-        return {"success": "PDF processed successfully"}
+        doc_id, original_filename = process_file(username, {'Body': text_content}, file.filename, file_type)
+        return {"success": "PDF processing complete", "doc_id": doc_id, "original_filename": original_filename}
 
 class TextProcessor(FileProcessor):
     async def process(self, background_tasks: BackgroundTasks, username, file: UploadFile, file_type: FileType):
@@ -140,8 +138,8 @@ class TextProcessor(FileProcessor):
         if mime_type != 'text/plain':
             raise HTTPException(status_code=400, detail="Invalid file type. Please upload a valid text file.")
         file_key = file.filename
-        process_file(username, {'Body': text_content}, file.filename, file_type)
-        return {"success": "Text processed successfully"}
+        doc_id, original_filename = process_file(username, {'Body': text_content}, file.filename, file_type)
+        return {"success": "Text processing complete", "doc_id": doc_id, "original_filename": original_filename}
 
 class FileProcessorFactory:
     def get_processor(self, file_type: FileType) -> FileProcessor:
@@ -156,12 +154,19 @@ class FileProcessorFactory:
         elif file_type == FileType.text:
             return TextProcessor()
         else:
-            raise ValueError(f"Invalid file type: {file_type}")
-
+            raise HTTPException(status_code=400, detail=f"Invalid file type: {file_type}")
+        
 # In your upload function:
 @router.post("/upload/")
-async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...), file_type: FileType = Form(...), claims: dict = Depends(get_auth)):
+async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...), file_type: str = Form(...), claims: dict = Depends(get_auth)):
     username = claims.get('cognito:username')
-    processor = FileProcessorFactory().get_processor(file_type)
-    result = await processor.process(background_tasks, username, file, file_type)
+    subscription_level = claims.get('custom:subscription')
+    if subscription_level != 'Pro':
+        raise HTTPException(status_code=403, detail="You must have a Pro subscription to upload files.")
+    try:
+        file_type_enum = FileType(file_type)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid file type: {file_type}")
+    processor = FileProcessorFactory().get_processor(file_type_enum)
+    result = await processor.process(background_tasks, username, file, file_type_enum)
     return result
