@@ -49,9 +49,9 @@ jobs:
         AWS_USER_POOL_CLIENT_ID="${AWS_USER_POOL_CLIENT_ID%%*( )}"
 
         TOKEN=$(aws cognito-idp admin-initiate-auth \
-            --region "$AWS_COGNITO_REGION" \
-            --user-pool-id "$AWS_USER_POOL_ID" \
-            --client-id "$AWS_USER_POOL_CLIENT_ID" \
+            --region $AWS_COGNITO_REGION \
+            --user-pool-id $AWS_USER_POOL_ID \
+            --client-id $AWS_USER_POOL_CLIENT_ID \
             --auth-flow ADMIN_USER_PASSWORD_AUTH \
             --auth-parameters USERNAME=psilvia11@outlook.com,PASSWORD="$USER_PASSWORD" \
             --query AuthenticationResult.IdToken --output text)
