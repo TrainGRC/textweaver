@@ -44,8 +44,8 @@ app = FastAPI(
         "name": "MIT License",
         "url": "https://choosealicense.com/licenses/mit/",
     },
-    docs_url="/documentation",
-    redoc_url="/redocumentation",
+    docs_url="/docs",
+    redoc_url="/redocs",
     openapi_tags=None
 )
 
