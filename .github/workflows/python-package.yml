@@ -34,6 +34,7 @@ jobs:
         AWS_DEFAULT_REGION: us-east-1
         AWS_DEFAULT_OUTPUT: json
         PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+        USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
         AWS_COGNITO_REGION: ${{ vars.AWS_COGNITO_REGION }}
         AWS_USER_POOL_CLIENT_ID: ${{ vars.AWS_USER_POOL_CLIENT_ID }}
         AWS_USER_POOL_ID: ${{ vars.AWS_USER_POOL_ID }}
@@ -45,7 +46,7 @@ jobs:
         PORT: ${{ vars.PORT }}
         SNS_TOPIC_NAME: ${{ vars.SNS_TOPIC_NAME }}
       run: |
-        TOKEN=$(aws cognito-idp admin-initiate-auth --region $AWS_COGNITO_REGION --user-pool-id $AWS_USER_POOL_ID --client-id $AWS_USER_POOL_CLIENT_ID --auth-flow ADMIN_USER_PASSWORD_AUTH --auth-parameters USERNAME=psilvia11@outlook.com, PASSWORD=password --query AuthenticationResult.IdToken --output text)
+        TOKEN=$(aws cognito-idp admin-initiate-auth --region $AWS_COGNITO_REGION --user-pool-id $AWS_USER_POOL_ID --client-id $AWS_USER_POOL_CLIENT_ID --auth-flow ADMIN_USER_PASSWORD_AUTH --auth-parameters USERNAME=psilvia11@outlook.com, PASSWORD=$USER_PASSWORD --query AuthenticationResult.IdToken --output text)
         echo "BEARER_TOKEN=$TOKEN" >> $GITHUB_ENV
         pytest ./tests
 
