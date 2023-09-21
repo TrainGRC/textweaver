@@ -45,7 +45,7 @@ jobs:
         PORT: ${{ vars.PORT }}
         SNS_TOPIC_NAME: ${{ vars.SNS_TOPIC_NAME }}
       run: |
-        TOKEN=$(aws cognito-idp admin-initiate-auth --region us-east-1 --user-pool-id us-east-1_6HZihsFMW --client-id 1difj1ec8einmv53fpmmbsu8s1 --auth-flow ADMIN_NO_SRP_AUTH --auth-parameters USERNAME=testuser@example.com,PASSWORD=password --query AuthenticationResult.IdToken --output text)
+        TOKEN=$(aws cognito-idp admin-initiate-auth --region $AWS_COGNITO_REGION --user-pool-id $AWS_USER_POOL_ID --client-id $AWS_USER_POOL_CLIENT_ID --auth-flow ADMIN_NO_SRP_AUTH --auth-parameters USERNAME=testuser@example.com,PASSWORD=password --query AuthenticationResult.IdToken --output text)
         echo "BEARER_TOKEN=$TOKEN" >> $GITHUB_ENV
         pytest ./tests
 
