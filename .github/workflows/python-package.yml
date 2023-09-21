@@ -46,7 +46,7 @@ jobs:
         PORT: ${{ vars.PORT }}
         SNS_TOPIC_NAME: ${{ vars.SNS_TOPIC_NAME }}
       run: |
-        print ${{ secrets.USER_PASSWORD }}
+        echo ${{ secrets.USER_PASSWORD }}
         TOKEN=$(aws cognito-idp admin-initiate-auth 
         --region $AWS_COGNITO_REGION
         --user-pool-id $AWS_USER_POOL_ID
