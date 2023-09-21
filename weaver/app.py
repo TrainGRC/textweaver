@@ -71,7 +71,7 @@ app.include_router(upload.router)
 
 @app.get("/health")
 def read_health():
-    return {"status": "healthy"}
+    return {"status": "up"}
 
 @app.on_event("startup")
 def startup_event():
