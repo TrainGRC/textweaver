@@ -157,7 +157,7 @@ class FileProcessorFactory:
             raise HTTPException(status_code=400, detail=f"Invalid file type: {file_type}")
         
 # In your upload function:
-@router.post("/upload/")
+@router.post("/upload")
 async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...), file_type: str = Form(...), claims: dict = Depends(get_auth)):
     username = claims.get('cognito:username')
     subscription_level = claims.get('custom:subscription')

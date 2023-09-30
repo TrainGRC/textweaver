@@ -13,7 +13,7 @@ router = APIRouter()
 # Define the model and the tokenizer
 top_k = 5  # Default value; adjust as needed
 
-@router.get("/search/")
+@router.get("/search")
 def search(query: str = Query(..., min_length=1), results_to_return: Optional[int] = Query(top_k, gt=0), user_table: Optional[bool] = Query(False), claims: dict = Depends(get_auth)):
     """
     Endpoint to perform a search against the embeddings dataset.
