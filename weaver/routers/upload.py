@@ -164,8 +164,8 @@ async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...)
     username = claims.get('cognito:username')
     subscription_level = claims.get('custom:subscription')
     # Uncomment the following lines to restrict uploads to Pro users
-    # if subscription_level != 'ProMonthly' and subscription_level != 'ProYearly':
-    #     raise HTTPException(status_code=403, detail="You must have a Pro subscription to upload files.")
+    if subscription_level != 'ProMonthly' and subscription_level != 'ProYearly':
+        raise HTTPException(status_code=403, detail="You must have a Pro subscription to upload files.")
     try:
         file_type_enum = FileType(file_type)
     except ValueError:
