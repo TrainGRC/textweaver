@@ -3,6 +3,7 @@ from fastapi import APIRouter, File, UploadFile, Form, HTTPException, Background
 from moviepy.editor import VideoFileClip
 import tempfile
 import os
+import io
 import boto3
 import botocore
 import magic
@@ -163,18 +164,17 @@ class FileProcessorFactory:
 async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...), file_type: str = Form(...), claims: dict = Depends(get_auth)):
     username = claims.get('cognito:username')
     subscription_level = claims.get('custom:subscription')
-    # Uncomment the following lines to restrict uploads to Pro users
     if subscription_level != 'ProMonthly' and subscription_level != 'ProYearly':
         raise HTTPException(status_code=403, detail="You must have a Pro subscription to upload files.")
     try:
         file_type_enum = FileType(file_type)
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid file type: {file_type}")
-    # Get the S3 bucket name from an environment variable
     s3_bucket = os.getenv('AWS_USER_FILES_BUCKET')
-    # Upload the file to S3
     s3_key = f'{username}/files/{file.filename}'
-    s3_client.upload_fileobj(file.file, s3_bucket, s3_key)
+    file_content = await file.read()  # Read the file content into a variable
+    s3_client.upload_fileobj(io.BytesIO(file_content), s3_bucket, s3_key)  # Upload the file content to S3
+    file.file = io.BytesIO(file_content)  # Replace the file's file object with a new file object created from the file content
     processor = FileProcessorFactory().get_processor(file_type_enum)
     result = await processor.process(background_tasks, username, file, file_type_enum)
     return result
