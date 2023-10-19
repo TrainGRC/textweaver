@@ -40,8 +40,6 @@ class AudioProcessor(FileProcessor):
         result = whisper_model.transcribe(temp_file.name)
         transcription_text = result['text']
         doc_id, original_filename = process_file(username, {'Body': transcription_text}, file.filename, file_type)
-        # Add the transcription and file processing to background tasks
-        background_tasks.add_task(self.transcribe_and_process, username, temp_file.name, file.filename, file_type)
         return {"success": "Audio processing started", "doc_id": doc_id, "original_filename": original_filename}
 
 
