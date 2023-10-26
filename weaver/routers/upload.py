@@ -229,7 +229,7 @@ async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...)
     logger.info(f"Temporary access key credentials created for {username}")
     s3 = session.client('s3')
     s3_bucket = os.getenv('AWS_USER_FILES_BUCKET')
-    s3_key = f'{username}/files/{file.filename}'
+    s3_key = f'private/{identity_id}/files/{file.filename}'
     file_content = await file.read()  # Read the file content into a variable
     s3.upload_fileobj(io.BytesIO(file_content), s3_bucket, s3_key)  # Upload the file content to S3
     file.file = io.BytesIO(file_content)  # Replace the file's file object with a new file object created from the file content
