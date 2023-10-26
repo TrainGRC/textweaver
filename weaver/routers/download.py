@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from fastapi import APIRouter, File, UploadFile, Form, HTTPException, BackgroundTasks, Depends, Header
+from fastapi import APIRouter, File, UploadFile, Form, HTTPException, BackgroundTasks, Depends
 from moviepy.editor import VideoFileClip
 import tempfile
 import os
@@ -27,13 +27,6 @@ class FileProcessor(ABC):
     @abstractmethod
     async def process(self, username, file: UploadFile, file_type: FileType):
         pass
-
-async def get_token(authorization: str = Header(None)):
-    if authorization:
-        scheme, _, token = authorization.partition(' ')
-        if scheme.lower() == 'bearer':
-            return token
-    raise HTTPException(status_code=401, detail='Unauthorized')
 
 class AudioProcessor(FileProcessor):
     async def process(self, background_tasks: BackgroundTasks, username, file: UploadFile, file_type: FileType):
@@ -178,7 +171,7 @@ class FileProcessorFactory:
         
 # In your upload function:
 @router.post("/upload")
-async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...), file_type: str = Form(...), token: str = Depends(get_token), claims: dict = Depends(get_auth)):
+async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...), file_type: str = Form(...), claims: dict = Depends(get_auth)):
     username = claims.get('cognito:username')
     subscription_level = claims.get('custom:subscription')
     if subscription_level != 'ProMonthly' and subscription_level != 'ProYearly':
@@ -187,51 +180,10 @@ async def upload(background_tasks: BackgroundTasks, file: UploadFile = File(...)
         file_type_enum = FileType(file_type)
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid file type: {file_type}")
-    try:
-        user_pool_id = os.getenv('AWS_USER_POOL_ID')
-        identity_pool_id = os.getenv('AWS_IDENTITY_POOL_ID')
-        login_provider = os.getenv('AWS_USER_POOL_CLIENT_ID')
-        region = os.getenv('AWS_COGNITO_REGION')
-        id_token = token
-        client = boto3.client('cognito-identity', region_name=region)
-        
-        # Get identity id for user
-        response = client.get_id(
-            IdentityPoolId=identity_pool_id,
-            Logins={
-                f'cognito-idp.{region}.amazonaws.com/{user_pool_id}': id_token
-            }
-        )
-        identity_id = response['IdentityId']
-        logger.info(f"Cognito Identity ID: {identity_id}")
-        # Get credentials for identity id
-        credentials_response = client.get_credentials_for_identity(
-            IdentityId=identity_id,
-            Logins={
-                f'cognito-idp.{region}.amazonaws.com/{user_pool_id}': id_token
-            }
-        )            
-        credentials = credentials_response['Credentials']
-        access_key = credentials['AccessKeyId']
-        secret_key = credentials['SecretKey']
-        session_token = credentials['SessionToken']
-        
-    except Exception as e:
-        logger.error(f"Unable to exchange token for temporary access key credentials: {str(e)}")
-        raise HTTPException(status_code=500, detail="Unable to exchange token for temporary access key credentials")
-
-    # Create a boto3 session with the temporary access key credentials
-    session = boto3.Session(
-        aws_access_key_id=access_key,
-        aws_secret_access_key=secret_key,
-        aws_session_token=session_token
-    )
-    logger.info(f"Temporary access key credentials created for {username}")
-    s3 = session.client('s3')
     s3_bucket = os.getenv('AWS_USER_FILES_BUCKET')
     s3_key = f'{username}/files/{file.filename}'
     file_content = await file.read()  # Read the file content into a variable
-    s3.upload_fileobj(io.BytesIO(file_content), s3_bucket, s3_key)  # Upload the file content to S3
+    s3_client.upload_fileobj(io.BytesIO(file_content), s3_bucket, s3_key)  # Upload the file content to S3
     file.file = io.BytesIO(file_content)  # Replace the file's file object with a new file object created from the file content
     processor = FileProcessorFactory().get_processor(file_type_enum)
     result = await processor.process(background_tasks, username, file, file_type_enum)
