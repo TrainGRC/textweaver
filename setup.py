@@ -42,6 +42,7 @@ setup(
         'transformers',
         'termcolor',
         'sentence-transformers',
+        'starlette',
         'python-multipart',
         'whisper-ai',
         'moviepy',
