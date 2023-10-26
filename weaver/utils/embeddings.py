@@ -112,7 +112,7 @@ def process_file(username, file_obj, file_key, file_type):
     # Check if records_to_upsert is empty or None
     if not records_to_upsert:
         logger.error(f"An error occurred while processing the file {file_key}: No records to upsert")
-        return "Error: Problem processing the file. No records to upload."
+        raise ValueError(f"An error occurred while processing the file {file_key}: No records to upsert")
     # Batch upsert records
     try:
         batch_insert_into_pinecone(file_key, username, records_to_upsert)
