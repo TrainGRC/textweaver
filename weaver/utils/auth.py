@@ -49,6 +49,7 @@ class CognitoAuthenticator:
 
         res = get(f"{self.issuer}/.well-known/jwks.json").json()
         if not res.get("keys"):
+            logger.error(f"The JWKS endpoint does not contain any keys: {res}")
             raise Exception("The JWKS endpoint does not contain any keys")
         jwks = [JWK(**key) for key in res["keys"]]
         return jwks
