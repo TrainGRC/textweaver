@@ -11,7 +11,6 @@ from pydantic import BaseModel
 from requests import get
 from fastapi import Request, Depends, HTTPException, status
 
-
 class JWK(BaseModel):
     """A JSON Web Key (JWK) model that represents a cryptographic key.
 
